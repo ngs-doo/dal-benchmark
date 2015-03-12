@@ -7,10 +7,10 @@
 	mixin BankScrape {
 		url website;
 		timestamp at;
-		map info;
+		map? info;
 		string(50)? externalId;
 		int ranking;
-		set<string(10)> tags;
+		set<string(10)>? tags;
 		timestamp createdAt;
 	}	
 }
@@ -74,7 +74,7 @@ module ComplexRelations {
 	entity Transaction {
 		date date;
 		string(200) description;
-		Complex.Currency currency;
+		Complex.Currency? currency;
 		money amount;
 	}
 

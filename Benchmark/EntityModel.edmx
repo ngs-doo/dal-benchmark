@@ -1,0 +1,510 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="2.0" xmlns:edmx="http://schemas.microsoft.com/ado/2008/10/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="EfModel.Store" Alias="Self" Provider="Npgsql" ProviderManifestToken="9.3.6" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns="http://schemas.microsoft.com/ado/2009/02/edm/ssdl">
+        <EntityContainer Name="EfModelStoreContainer">
+          <EntitySet Name="BankScrape" EntityType="EfModel.Store.BankScrape" store:Type="Tables" Schema="ComplexObjects" />
+          <EntitySet Name="Account" EntityType="EfModel.Store.Account" store:Type="Tables" Schema="ComplexRelations" />
+          <EntitySet Name="BankScrape1" EntityType="EfModel.Store.BankScrape1" store:Type="Tables" Schema="ComplexRelations" Table="BankScrape" />
+          <EntitySet Name="Transaction" EntityType="EfModel.Store.Transaction" store:Type="Tables" Schema="ComplexRelations" />
+          <EntitySet Name="Post" EntityType="EfModel.Store.Post" store:Type="Tables" Schema="Simple" />
+          <EntitySet Name="Invoice" EntityType="EfModel.Store.Invoice" store:Type="Tables" Schema="StandardObjects" />
+          <EntitySet Name="Invoice1" EntityType="EfModel.Store.Invoice1" store:Type="Tables" Schema="StandardRelations" Table="Invoice" />
+          <EntitySet Name="Item" EntityType="EfModel.Store.Item" store:Type="Tables" Schema="StandardRelations" />
+          <AssociationSet Name="fk_accounts" Association="EfModel.Store.fk_accounts">
+            <End Role="BankScrape1" EntitySet="BankScrape1" />
+            <End Role="Account" EntitySet="Account" />
+          </AssociationSet>
+          <AssociationSet Name="fk_items" Association="EfModel.Store.fk_items">
+            <End Role="Invoice1" EntitySet="Invoice1" />
+            <End Role="Item" EntitySet="Item" />
+          </AssociationSet>
+          <AssociationSet Name="fk_transactions" Association="EfModel.Store.fk_transactions">
+            <End Role="Account" EntitySet="Account" />
+            <End Role="Transaction" EntitySet="Transaction" />
+          </AssociationSet>
+        </EntityContainer>
+        <!--Errors Found During Generation:
+      warning 6005: The data type '_Account' is currently not supported for the target .NET Framework version; the column 'accounts' in table 'benchmark.ComplexObjects.BankScrape' was excluded.
+      warning 6005: The data type 'hstore' is currently not supported for the target .NET Framework version; the column 'info' in table 'benchmark.ComplexObjects.BankScrape' was excluded.
+      warning 6005: The data type '_varchar' is currently not supported for the target .NET Framework version; the column 'tags' in table 'benchmark.ComplexObjects.BankScrape' was excluded.
+      -->
+        <EntityType Name="BankScrape">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="int4" Nullable="false" />
+          <Property Name="website" Type="varchar" Nullable="false" />
+          <Property Name="at" Type="timestamptz" Nullable="false" />
+          <Property Name="externalId" Type="varchar" MaxLength="50" />
+          <Property Name="ranking" Type="int4" Nullable="false" />
+          <Property Name="createdAt" Type="timestamptz" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Account">
+          <Key>
+            <PropertyRef Name="BankScrapeid" />
+            <PropertyRef Name="Index" />
+          </Key>
+          <Property Name="balance" Type="numeric" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="number" Type="varchar" Nullable="false" MaxLength="40" />
+          <Property Name="name" Type="varchar" Nullable="false" MaxLength="100" />
+          <Property Name="notes" Type="varchar" Nullable="false" MaxLength="800" />
+          <Property Name="BankScrapeid" Type="int4" Nullable="false" />
+          <Property Name="Index" Type="int4" Nullable="false" />
+        </EntityType>
+        <!--Errors Found During Generation:
+      warning 6005: The data type 'hstore' is currently not supported for the target .NET Framework version; the column 'info' in table 'benchmark.ComplexRelations.BankScrape' was excluded.
+      warning 6005: The data type '_varchar' is currently not supported for the target .NET Framework version; the column 'tags' in table 'benchmark.ComplexRelations.BankScrape' was excluded.
+      -->
+        <EntityType Name="BankScrape1">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="int4" Nullable="false" />
+          <Property Name="website" Type="varchar" Nullable="false" />
+          <Property Name="at" Type="timestamptz" Nullable="false" />
+          <Property Name="externalId" Type="varchar" MaxLength="50" />
+          <Property Name="ranking" Type="int4" Nullable="false" />
+          <Property Name="createdAt" Type="timestamptz" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Transaction">
+          <Key>
+            <PropertyRef Name="AccountBankScrapeid" />
+            <PropertyRef Name="AccountIndex" />
+            <PropertyRef Name="Index" />
+          </Key>
+          <Property Name="date" Type="date" Nullable="false" />
+          <Property Name="description" Type="varchar" Nullable="false" MaxLength="200" />
+          <Property Name="amount" Type="numeric" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="AccountBankScrapeid" Type="int4" Nullable="false" />
+          <Property Name="AccountIndex" Type="int4" Nullable="false" />
+          <Property Name="Index" Type="int4" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Post">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="uuid" Nullable="false" />
+          <Property Name="title" Type="varchar" Nullable="false" />
+          <Property Name="created" Type="date" Nullable="false" />
+        </EntityType>
+        <!--Errors Found During Generation:
+      warning 6005: The data type '_Item' is currently not supported for the target .NET Framework version; the column 'items' in table 'benchmark.StandardObjects.Invoice' was excluded.
+      -->
+        <EntityType Name="Invoice">
+          <Key>
+            <PropertyRef Name="number" />
+          </Key>
+          <Property Name="number" Type="varchar" Nullable="false" MaxLength="20" />
+          <Property Name="dueDate" Type="date" Nullable="false" />
+          <Property Name="total" Type="numeric" Nullable="false" />
+          <Property Name="paid" Type="timestamptz" />
+          <Property Name="canceled" Type="bool" Nullable="false" />
+          <Property Name="version" Type="int8" Nullable="false" />
+          <Property Name="tax" Type="numeric" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="reference" Type="varchar" MaxLength="15" />
+          <Property Name="createdAt" Type="timestamptz" Nullable="false" />
+          <Property Name="modifiedAt" Type="timestamptz" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Invoice1">
+          <Key>
+            <PropertyRef Name="number" />
+          </Key>
+          <Property Name="number" Type="varchar" Nullable="false" MaxLength="20" />
+          <Property Name="dueDate" Type="date" Nullable="false" />
+          <Property Name="total" Type="numeric" Nullable="false" />
+          <Property Name="paid" Type="timestamptz" />
+          <Property Name="canceled" Type="bool" Nullable="false" />
+          <Property Name="version" Type="int8" Nullable="false" />
+          <Property Name="tax" Type="numeric" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="reference" Type="varchar" MaxLength="15" />
+          <Property Name="createdAt" Type="timestamptz" Nullable="false" />
+          <Property Name="modifiedAt" Type="timestamptz" Nullable="false" />
+        </EntityType>
+        <EntityType Name="Item">
+          <Key>
+            <PropertyRef Name="Invoicenumber" />
+            <PropertyRef Name="Index" />
+          </Key>
+          <Property Name="product" Type="varchar" Nullable="false" MaxLength="100" />
+          <Property Name="cost" Type="numeric" Nullable="false" />
+          <Property Name="quantity" Type="int4" Nullable="false" />
+          <Property Name="taxGroup" Type="numeric" Nullable="false" Precision="21" Scale="1" />
+          <Property Name="discount" Type="numeric" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="Invoicenumber" Type="varchar" Nullable="false" MaxLength="20" />
+          <Property Name="Index" Type="int4" Nullable="false" />
+        </EntityType>
+        <Association Name="fk_accounts">
+          <End Role="BankScrape1" Type="EfModel.Store.BankScrape1" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Account" Type="EfModel.Store.Account" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="BankScrape1">
+              <PropertyRef Name="id" />
+            </Principal>
+            <Dependent Role="Account">
+              <PropertyRef Name="BankScrapeid" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="fk_items">
+          <End Role="Invoice1" Type="EfModel.Store.Invoice1" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Item" Type="EfModel.Store.Item" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Invoice1">
+              <PropertyRef Name="number" />
+            </Principal>
+            <Dependent Role="Item">
+              <PropertyRef Name="Invoicenumber" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="fk_transactions">
+          <End Role="Account" Type="EfModel.Store.Account" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Transaction" Type="EfModel.Store.Transaction" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Account">
+              <PropertyRef Name="BankScrapeid" />
+              <PropertyRef Name="Index" />
+            </Principal>
+            <Dependent Role="Transaction">
+              <PropertyRef Name="AccountBankScrapeid" />
+              <PropertyRef Name="AccountIndex" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="EfModel" Alias="Self" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns="http://schemas.microsoft.com/ado/2008/09/edm">
+        <EntityContainer Name="EfContext" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="BankScrape" EntityType="EfModel.BankScrapeValue" />
+          <EntitySet Name="Account" EntityType="EfModel.EfAccount" />
+          <EntitySet Name="BankScrape1" EntityType="EfModel.EfBankScrape" />
+          <EntitySet Name="Transaction" EntityType="EfModel.EfTransaction" />
+          <EntitySet Name="Post" EntityType="EfModel.EfPost" />
+          <EntitySet Name="Invoice" EntityType="EfModel.InvoiceValue" />
+          <EntitySet Name="Invoice1" EntityType="EfModel.EfInvoice" />
+          <EntitySet Name="Item" EntityType="EfModel.EfItem" />
+          <AssociationSet Name="fk_accounts" Association="EfModel.fk_accounts">
+            <End Role="BankScrape1" EntitySet="BankScrape1" />
+            <End Role="Account" EntitySet="Account" />
+          </AssociationSet>
+          <AssociationSet Name="fk_transactions" Association="EfModel.fk_transactions">
+            <End Role="Account" EntitySet="Account" />
+            <End Role="Transaction" EntitySet="Transaction" />
+          </AssociationSet>
+          <AssociationSet Name="fk_items" Association="EfModel.fk_items">
+            <End Role="Invoice1" EntitySet="Invoice1" />
+            <End Role="Item" EntitySet="Item" />
+          </AssociationSet>
+        </EntityContainer>
+        <EntityType Name="BankScrapeValue">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="Int32" Nullable="false" />
+          <Property Name="website" Type="String" Nullable="false" MaxLength="8000" Unicode="true" FixedLength="false" />
+          <Property Name="at" Type="DateTimeOffset" Nullable="false" Precision="7" />
+          <Property Name="externalId" Type="String" MaxLength="50" Unicode="true" FixedLength="false" />
+          <Property Name="ranking" Type="Int32" Nullable="false" />
+          <Property Name="createdAt" Type="DateTimeOffset" Nullable="false" Precision="7" />
+        </EntityType>
+        <EntityType Name="EfAccount">
+          <Key>
+            <PropertyRef Name="BankScrapeid" />
+            <PropertyRef Name="Index" />
+          </Key>
+          <Property Name="balance" Type="Decimal" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="number" Type="String" Nullable="false" MaxLength="40" Unicode="true" FixedLength="false" />
+          <Property Name="name" Type="String" Nullable="false" MaxLength="100" Unicode="true" FixedLength="false" />
+          <Property Name="notes" Type="String" Nullable="false" MaxLength="800" Unicode="true" FixedLength="false" />
+          <Property Name="BankScrapeid" Type="Int32" Nullable="false" />
+          <Property Name="Index" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="BankScrape1" Relationship="EfModel.fk_accounts" FromRole="Account" ToRole="BankScrape1" />
+          <NavigationProperty Name="Transaction" Relationship="EfModel.fk_transactions" FromRole="Account" ToRole="Transaction" />
+        </EntityType>
+        <EntityType Name="EfBankScrape">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="Int32" Nullable="false" />
+          <Property Name="website" Type="String" Nullable="false" MaxLength="8000" Unicode="true" FixedLength="false" />
+          <Property Name="at" Type="DateTimeOffset" Nullable="false" Precision="7" />
+          <Property Name="externalId" Type="String" MaxLength="50" Unicode="true" FixedLength="false" />
+          <Property Name="ranking" Type="Int32" Nullable="false" />
+          <Property Name="createdAt" Type="DateTimeOffset" Nullable="false" Precision="7" />
+          <NavigationProperty Name="Account" Relationship="EfModel.fk_accounts" FromRole="BankScrape1" ToRole="Account" />
+        </EntityType>
+        <EntityType Name="EfTransaction">
+          <Key>
+            <PropertyRef Name="AccountBankScrapeid" />
+            <PropertyRef Name="AccountIndex" />
+            <PropertyRef Name="Index" />
+          </Key>
+          <Property Name="date" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="description" Type="String" Nullable="false" MaxLength="200" Unicode="true" FixedLength="false" />
+          <Property Name="amount" Type="Decimal" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="AccountBankScrapeid" Type="Int32" Nullable="false" />
+          <Property Name="AccountIndex" Type="Int32" Nullable="false" />
+          <Property Name="Index" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="Account" Relationship="EfModel.fk_transactions" FromRole="Transaction" ToRole="Account" />
+        </EntityType>
+        <EntityType Name="EfPost">
+          <Key>
+            <PropertyRef Name="id" />
+          </Key>
+          <Property Name="id" Type="Guid" Nullable="false" />
+          <Property Name="title" Type="String" Nullable="false" MaxLength="8000" Unicode="true" FixedLength="false" />
+          <Property Name="created" Type="DateTime" Nullable="false" Precision="0" />
+        </EntityType>
+        <EntityType Name="InvoiceValue">
+          <Key>
+            <PropertyRef Name="number" />
+          </Key>
+          <Property Name="number" Type="String" Nullable="false" MaxLength="20" Unicode="true" FixedLength="false" />
+          <Property Name="dueDate" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="total" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+          <Property Name="paid" Type="DateTimeOffset" Precision="7" />
+          <Property Name="canceled" Type="Boolean" Nullable="false" />
+          <Property Name="version" Type="Int64" Nullable="false" />
+          <Property Name="tax" Type="Decimal" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="reference" Type="String" MaxLength="15" Unicode="true" FixedLength="false" />
+          <Property Name="createdAt" Type="DateTimeOffset" Nullable="false" Precision="7" />
+          <Property Name="modifiedAt" Type="DateTimeOffset" Nullable="false" Precision="7" />
+        </EntityType>
+        <EntityType Name="EfInvoice">
+          <Key>
+            <PropertyRef Name="number" />
+          </Key>
+          <Property Name="number" Type="String" Nullable="false" MaxLength="20" Unicode="true" FixedLength="false" />
+          <Property Name="dueDate" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="total" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+          <Property Name="paid" Type="DateTimeOffset" />
+          <Property Name="canceled" Type="Boolean" Nullable="false" />
+          <Property Name="version" Type="Int64" Nullable="false" />
+          <Property Name="tax" Type="Decimal" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="reference" Type="String" MaxLength="15" Unicode="true" FixedLength="false" />
+          <Property Name="createdAt" Type="DateTimeOffset" Nullable="false" />
+          <Property Name="modifiedAt" Type="DateTimeOffset" Nullable="false" />
+          <NavigationProperty Name="Item" Relationship="EfModel.fk_items" FromRole="Invoice1" ToRole="Item" />
+        </EntityType>
+        <EntityType Name="EfItem">
+          <Key>
+            <PropertyRef Name="Invoicenumber" />
+            <PropertyRef Name="Index" />
+          </Key>
+          <Property Name="product" Type="String" Nullable="false" MaxLength="100" Unicode="true" FixedLength="false" />
+          <Property Name="cost" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+          <Property Name="quantity" Type="Int32" Nullable="false" />
+          <Property Name="taxGroup" Type="Decimal" Nullable="false" Precision="21" Scale="1" />
+          <Property Name="discount" Type="Decimal" Nullable="false" Precision="22" Scale="2" />
+          <Property Name="Invoicenumber" Type="String" Nullable="false" MaxLength="20" Unicode="true" FixedLength="false" />
+          <Property Name="Index" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="Invoice1" Relationship="EfModel.fk_items" FromRole="Item" ToRole="Invoice1" />
+        </EntityType>
+        <Association Name="fk_accounts">
+          <End Role="BankScrape1" Type="EfModel.EfBankScrape" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Account" Type="EfModel.EfAccount" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="BankScrape1">
+              <PropertyRef Name="id" />
+            </Principal>
+            <Dependent Role="Account">
+              <PropertyRef Name="BankScrapeid" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="fk_transactions">
+          <End Role="Account" Type="EfModel.EfAccount" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Transaction" Type="EfModel.EfTransaction" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Account">
+              <PropertyRef Name="BankScrapeid" />
+              <PropertyRef Name="Index" />
+            </Principal>
+            <Dependent Role="Transaction">
+              <PropertyRef Name="AccountBankScrapeid" />
+              <PropertyRef Name="AccountIndex" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="fk_items">
+          <End Role="Invoice1" Type="EfModel.EfInvoice" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="Item" Type="EfModel.EfItem" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Invoice1">
+              <PropertyRef Name="number" />
+            </Principal>
+            <Dependent Role="Item">
+              <PropertyRef Name="Invoicenumber" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2008/09/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="EfModelStoreContainer" CdmEntityContainer="EfContext">
+          <EntitySetMapping Name="BankScrape">
+            <EntityTypeMapping TypeName="EfModel.BankScrapeValue">
+              <MappingFragment StoreEntitySet="BankScrape">
+                <ScalarProperty Name="id" ColumnName="id" />
+                <ScalarProperty Name="website" ColumnName="website" />
+                <ScalarProperty Name="at" ColumnName="at" />
+                <ScalarProperty Name="externalId" ColumnName="externalId" />
+                <ScalarProperty Name="ranking" ColumnName="ranking" />
+                <ScalarProperty Name="createdAt" ColumnName="createdAt" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Account">
+            <EntityTypeMapping TypeName="EfModel.EfAccount">
+              <MappingFragment StoreEntitySet="Account">
+                <ScalarProperty Name="balance" ColumnName="balance" />
+                <ScalarProperty Name="number" ColumnName="number" />
+                <ScalarProperty Name="name" ColumnName="name" />
+                <ScalarProperty Name="notes" ColumnName="notes" />
+                <ScalarProperty Name="BankScrapeid" ColumnName="BankScrapeid" />
+                <ScalarProperty Name="Index" ColumnName="Index" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Transaction">
+            <EntityTypeMapping TypeName="EfModel.EfTransaction">
+              <MappingFragment StoreEntitySet="Transaction">
+                <ScalarProperty Name="date" ColumnName="date" />
+                <ScalarProperty Name="description" ColumnName="description" />
+                <ScalarProperty Name="amount" ColumnName="amount" />
+                <ScalarProperty Name="AccountBankScrapeid" ColumnName="AccountBankScrapeid" />
+                <ScalarProperty Name="AccountIndex" ColumnName="AccountIndex" />
+                <ScalarProperty Name="Index" ColumnName="Index" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Post">
+            <EntityTypeMapping TypeName="EfModel.EfPost">
+              <MappingFragment StoreEntitySet="Post">
+                <ScalarProperty Name="id" ColumnName="id" />
+                <ScalarProperty Name="title" ColumnName="title" />
+                <ScalarProperty Name="created" ColumnName="created" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Invoice">
+            <EntityTypeMapping TypeName="EfModel.InvoiceValue">
+              <MappingFragment StoreEntitySet="Invoice">
+                <ScalarProperty Name="number" ColumnName="number" />
+                <ScalarProperty Name="dueDate" ColumnName="dueDate" />
+                <ScalarProperty Name="total" ColumnName="total" />
+                <ScalarProperty Name="paid" ColumnName="paid" />
+                <ScalarProperty Name="canceled" ColumnName="canceled" />
+                <ScalarProperty Name="version" ColumnName="version" />
+                <ScalarProperty Name="tax" ColumnName="tax" />
+                <ScalarProperty Name="reference" ColumnName="reference" />
+                <ScalarProperty Name="createdAt" ColumnName="createdAt" />
+                <ScalarProperty Name="modifiedAt" ColumnName="modifiedAt" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Invoice1">
+            <EntityTypeMapping TypeName="EfModel.EfInvoice">
+              <MappingFragment StoreEntitySet="Invoice1">
+                <ScalarProperty Name="number" ColumnName="number" />
+                <ScalarProperty Name="dueDate" ColumnName="dueDate" />
+                <ScalarProperty Name="total" ColumnName="total" />
+                <ScalarProperty Name="paid" ColumnName="paid" />
+                <ScalarProperty Name="canceled" ColumnName="canceled" />
+                <ScalarProperty Name="version" ColumnName="version" />
+                <ScalarProperty Name="tax" ColumnName="tax" />
+                <ScalarProperty Name="reference" ColumnName="reference" />
+                <ScalarProperty Name="createdAt" ColumnName="createdAt" />
+                <ScalarProperty Name="modifiedAt" ColumnName="modifiedAt" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="Item">
+            <EntityTypeMapping TypeName="EfModel.EfItem">
+              <MappingFragment StoreEntitySet="Item">
+                <ScalarProperty Name="product" ColumnName="product" />
+                <ScalarProperty Name="cost" ColumnName="cost" />
+                <ScalarProperty Name="quantity" ColumnName="quantity" />
+                <ScalarProperty Name="taxGroup" ColumnName="taxGroup" />
+                <ScalarProperty Name="discount" ColumnName="discount" />
+                <ScalarProperty Name="Invoicenumber" ColumnName="Invoicenumber" />
+                <ScalarProperty Name="Index" ColumnName="Index" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="BankScrape1">
+            <EntityTypeMapping TypeName="IsTypeOf(EfModel.EfBankScrape)">
+              <MappingFragment StoreEntitySet="BankScrape1">
+                <ScalarProperty Name="createdAt" ColumnName="createdAt" />
+                <ScalarProperty Name="ranking" ColumnName="ranking" />
+                <ScalarProperty Name="externalId" ColumnName="externalId" />
+                <ScalarProperty Name="at" ColumnName="at" />
+                <ScalarProperty Name="website" ColumnName="website" />
+                <ScalarProperty Name="id" ColumnName="id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2008/10/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="False" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams>
+      <Diagram Name="Model1">
+        <EntityTypeShape EntityType="EfModel.BankScrapeValue" Width="1.75" PointX="5.25" PointY="4.5" Height="2.1725878906249996" IsExpanded="true" />
+        <EntityTypeShape EntityType="EfModel.EfAccount" Width="1.5" PointX="3" PointY="1" Height="2.5571907552083326" IsExpanded="true" />
+        <EntityTypeShape EntityType="EfModel.EfBankScrape" Width="1.5" PointX="0.75" PointY="1" Height="2.364889322916667" IsExpanded="true" />
+        <EntityTypeShape EntityType="EfModel.EfTransaction" Width="1.5" PointX="5.25" PointY="1" Height="2.3648893229166656" IsExpanded="true" />
+        <EntityTypeShape EntityType="EfModel.EfPost" Width="1.5" PointX="7.75" PointY="0.75" Height="1.5956835937499996" IsExpanded="true" />
+        <EntityTypeShape EntityType="EfModel.InvoiceValue" Width="1.5" PointX="7.75" PointY="3.75" Height="2.941793619791667" IsExpanded="true" />
+        <EntityTypeShape EntityType="EfModel.EfInvoice" Width="1.5" PointX="0.75" PointY="5" Height="3.1340950520833317" IsExpanded="true" />
+        <EntityTypeShape EntityType="EfModel.EfItem" Width="1.5" PointX="3" PointY="5.25" Height="2.5571907552083317" IsExpanded="true" />
+        <AssociationConnector Association="EfModel.fk_accounts" ManuallyRouted="false">
+          <ConnectorPoint PointX="2.25" PointY="2.1824446614583337" />
+          <ConnectorPoint PointX="3" PointY="2.1824446614583337" />
+        </AssociationConnector>
+        <AssociationConnector Association="EfModel.fk_transactions" ManuallyRouted="false">
+          <ConnectorPoint PointX="4.5" PointY="2.1824446614583328" />
+          <ConnectorPoint PointX="5.25" PointY="2.1824446614583328" />
+        </AssociationConnector>
+        <AssociationConnector Association="EfModel.fk_items" ManuallyRouted="false">
+          <ConnectorPoint PointX="2.25" PointY="6.5285953776041659" />
+          <ConnectorPoint PointX="3" PointY="6.5285953776041659" />
+        </AssociationConnector>
+      </Diagram>
+    </Diagrams>
+  </Designer>
+</edmx:Edmx>

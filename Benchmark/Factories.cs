@@ -7,8 +7,8 @@ namespace Benchmark
 {
 	internal static class Factories
 	{
-		private static DateTime Now = DateTime.Now;
-		private static DateTime Today = DateTime.Today;
+		public static DateTime Now = DateTime.Now;
+		public static DateTime Today = DateTime.Today;
 
 		private static byte[] GuidBytes = new byte[8];
 
@@ -102,6 +102,9 @@ namespace Benchmark
 
 		private static void FillDict(int i, Dictionary<string, string> dict)
 		{
+			// allow null properties
+			if (dict == null)
+				return ;
 			for (int j = 0; j < i / 3 % 10; j++)
 				dict["key" + j] = "value " + i;
 		}

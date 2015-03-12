@@ -37,9 +37,15 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="EntityFramework">
+      <HintPath>..\app\EntityFramework.dll</HintPath>
+    </Reference>
     <Reference Include="Npgsql">
       <HintPath>..\app\Npgsql.dll</HintPath>
       <Aliases>global</Aliases>
+    </Reference>
+    <Reference Include="Npgsql.EntityFramework">
+      <HintPath>..\app\Npgsql.EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="Revenj.Core">
       <HintPath>..\app\Revenj.Core.dll</HintPath>
@@ -59,8 +65,13 @@
       <HintPath>lib\ServerModel.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data.Entity" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -68,6 +79,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Benches\EntityBench.cs" />
     <Compile Include="Benches\NpgsqlBench.cs" />
     <Compile Include="Benches\RevenjNpgsqlBench.cs" />
     <Compile Include="Factories.cs" />
@@ -76,6 +88,11 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Benches\RevenjBench.cs" />
+    <Compile Include="EntityModel.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>EntityModel.edmx</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
@@ -85,6 +102,10 @@
     <None Include="DSL\ComplexModel.dsl" />
     <None Include="DSL\StandardModel.dsl" />
     <None Include="DSL\SimpleModel.dsl" />
+    <EntityDeploy Include="EntityModel.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>EntityModel.Designer.cs</LastGenOutput>
+    </EntityDeploy>
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

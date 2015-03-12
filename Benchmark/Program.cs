@@ -10,7 +10,7 @@ namespace Benchmark
 	{
 		enum BenchTarget
 		{
-			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql
+			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql, Entity
 		}
 
 		static int Main(string[] args)
@@ -77,6 +77,9 @@ namespace Benchmark
 				case BenchTarget.Revenj_Oracle:
 					RevenjBench.RunOracle(type, data);
 					break;
+				case BenchTarget.Entity:
+					EntityBench.Run(type, data);
+					break;
 				default:
 					RevenjBench.RunPostgres(type, data);
 					break;
@@ -88,7 +91,27 @@ namespace Benchmark
 			Func<int, T> createNew,
 			Action<T, int> changeExisting,
 			Func<int, ISpecification<T>> createFilter,
-			int data)
+			int data
+			)
+			where T : IAggregateRoot
+		{
+			RunBenchmark<T>(
+				bench,
+				createNew,
+				changeExisting,
+				createFilter,
+				data,
+				(T obj) => obj.URI
+				);
+		}
+
+		public static void RunBenchmark<T>(
+			IBench<T> bench,
+			Func<int, T> createNew,
+			Action<T, int> changeExisting,
+			Func<int, ISpecification<T>> createFilter,
+			int data,
+			Func<T, string> getURI)
 			where T : IAggregateRoot
 		{
 			for (int i = 0; i < 10; i++)
@@ -104,7 +127,7 @@ namespace Benchmark
 					throw new InvalidProgramException("Incorrect results when comparing aggregates from search");
 				var subset = bench.SearchSubset(i).ToList();
 				if (subset.Count != 1)
-					throw new InvalidProgramException("Incorrect results during search subset");
+					throw new InvalidProgramException("Incorrect results during search subset, count="+subset.Count);
 				changeExisting(tmp[0], i);
 				bench.Update(tmp);
 				changeExisting(tmp[0], i);
@@ -118,10 +141,10 @@ namespace Benchmark
 					if (!tmp[0].Equals(query[0]))
 						throw new InvalidProgramException("Incorrect results when comparing aggregates from query");
 				}
-				var fs = bench.FindSingle(newObject.URI);
+				var fs = bench.FindSingle(getURI(newObject));
 				if (!fs.Equals(tmp[0]))
 					throw new InvalidProgramException("Incorrect results when comparing aggregates from find single");
-				var fm = bench.FindMany(new[] { newObject.URI }).ToList();
+				var fm = bench.FindMany(new[] { getURI(newObject) }).ToList();
 				if (fm.Count != 1)
 					throw new InvalidProgramException("Incorrect results during find many");
 				if (!fm[0].Equals(tmp[0]))
@@ -142,7 +165,7 @@ namespace Benchmark
 			bench.Insert(items);
 			Console.WriteLine("bulk_insert = " + sw.ElapsedMilliseconds);
 			for (int i = data / 3; i < data / 3 + lookupUris.Length; i++)
-				lookupUris[i - data / 3] = items[i].URI;
+				lookupUris[i - data / 3] = getURI(items[i]);
 			for (int i = 0; i < items.Count; i++)
 				changeExisting(items[i], i);
 			bench.Analyze();

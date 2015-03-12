@@ -1,3 +1,222 @@
+/*MIGRATION_DESCRIPTION
+--CREATE: Complex-Currency
+New object Currency will be created in schema Complex
+--CREATE: Complex-Currency-EUR
+New enum label EUR will be added to enum object Currency in schema Complex
+--CREATE: Complex-Currency-USD
+New enum label USD will be added to enum object Currency in schema Complex
+--CREATE: Complex-Currency-Other
+New enum label Other will be added to enum object Currency in schema Complex
+--CREATE: Complex-BankScrape
+New object BankScrape will be created in schema Complex
+--CREATE: Complex-BankScrape-website
+New property website will be created for BankScrape in Complex
+--CREATE: Complex-BankScrape-at
+New property at will be created for BankScrape in Complex
+--CREATE: Complex-BankScrape-info
+New property info will be created for BankScrape in Complex
+--CREATE: Complex-BankScrape-externalId
+New property externalId will be created for BankScrape in Complex
+--CREATE: Complex-BankScrape-ranking
+New property ranking will be created for BankScrape in Complex
+--CREATE: Complex-BankScrape-tags
+New property tags will be created for BankScrape in Complex
+--CREATE: Complex-BankScrape-createdAt
+New property createdAt will be created for BankScrape in Complex
+--CREATE: ComplexObjects-BankScrape
+New object BankScrape will be created in schema ComplexObjects
+--CREATE: ComplexObjects-BankScrape-id
+New property id will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-BankScrape-accounts
+New property accounts will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-Account
+New object Account will be created in schema ComplexObjects
+--CREATE: ComplexObjects-Account-balance
+New property balance will be created for Account in ComplexObjects
+--CREATE: ComplexObjects-Account-number
+New property number will be created for Account in ComplexObjects
+--CREATE: ComplexObjects-Account-name
+New property name will be created for Account in ComplexObjects
+--CREATE: ComplexObjects-Account-notes
+New property notes will be created for Account in ComplexObjects
+--CREATE: ComplexObjects-Account-transactions
+New property transactions will be created for Account in ComplexObjects
+--CREATE: ComplexObjects-Transaction
+New object Transaction will be created in schema ComplexObjects
+--CREATE: ComplexObjects-Transaction-date
+New property date will be created for Transaction in ComplexObjects
+--CREATE: ComplexObjects-Transaction-description
+New property description will be created for Transaction in ComplexObjects
+--CREATE: ComplexObjects-Transaction-currency
+New property currency will be created for Transaction in ComplexObjects
+--CREATE: ComplexObjects-Transaction-amount
+New property amount will be created for Transaction in ComplexObjects
+--CREATE: ComplexRelations-BankScrape
+New object BankScrape will be created in schema ComplexRelations
+--CREATE: ComplexRelations-BankScrape-id
+New property id will be created for BankScrape in ComplexRelations
+--CREATE: ComplexRelations-Account
+New object Account will be created in schema ComplexRelations
+--CREATE: ComplexRelations-Account-balance
+New property balance will be created for Account in ComplexRelations
+--CREATE: ComplexRelations-Account-number
+New property number will be created for Account in ComplexRelations
+--CREATE: ComplexRelations-Account-name
+New property name will be created for Account in ComplexRelations
+--CREATE: ComplexRelations-Account-notes
+New property notes will be created for Account in ComplexRelations
+--CREATE: ComplexRelations-Transaction
+New object Transaction will be created in schema ComplexRelations
+--CREATE: ComplexRelations-Transaction-date
+New property date will be created for Transaction in ComplexRelations
+--CREATE: ComplexRelations-Transaction-description
+New property description will be created for Transaction in ComplexRelations
+--CREATE: ComplexRelations-Transaction-currency
+New property currency will be created for Transaction in ComplexRelations
+--CREATE: ComplexRelations-Transaction-amount
+New property amount will be created for Transaction in ComplexRelations
+--CREATE: Simple-Post
+New object Post will be created in schema Simple
+--CREATE: Simple-Post-id
+New property id will be created for Post in Simple
+--CREATE: Simple-Post-title
+New property title will be created for Post in Simple
+--CREATE: Simple-Post-created
+New property created will be created for Post in Simple
+--CREATE: Standard-Invoice
+New object Invoice will be created in schema Standard
+--CREATE: Standard-Invoice-dueDate
+New property dueDate will be created for Invoice in Standard
+--CREATE: Standard-Invoice-total
+New property total will be created for Invoice in Standard
+--CREATE: Standard-Invoice-paid
+New property paid will be created for Invoice in Standard
+--CREATE: Standard-Invoice-canceled
+New property canceled will be created for Invoice in Standard
+--CREATE: Standard-Invoice-version
+New property version will be created for Invoice in Standard
+--CREATE: Standard-Invoice-tax
+New property tax will be created for Invoice in Standard
+--CREATE: Standard-Invoice-reference
+New property reference will be created for Invoice in Standard
+--CREATE: Standard-Invoice-createdAt
+New property createdAt will be created for Invoice in Standard
+--CREATE: Standard-Invoice-modifiedAt
+New property modifiedAt will be created for Invoice in Standard
+--CREATE: StandardObjects-Invoice
+New object Invoice will be created in schema StandardObjects
+--CREATE: StandardObjects-Invoice-number
+New property number will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-items
+New property items will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Item
+New object Item will be created in schema StandardObjects
+--CREATE: StandardObjects-Item-product
+New property product will be created for Item in StandardObjects
+--CREATE: StandardObjects-Item-cost
+New property cost will be created for Item in StandardObjects
+--CREATE: StandardObjects-Item-quantity
+New property quantity will be created for Item in StandardObjects
+--CREATE: StandardObjects-Item-taxGroup
+New property taxGroup will be created for Item in StandardObjects
+--CREATE: StandardObjects-Item-discount
+New property discount will be created for Item in StandardObjects
+--CREATE: StandardRelations-Invoice
+New object Invoice will be created in schema StandardRelations
+--CREATE: StandardRelations-Invoice-number
+New property number will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Item
+New object Item will be created in schema StandardRelations
+--CREATE: StandardRelations-Item-product
+New property product will be created for Item in StandardRelations
+--CREATE: StandardRelations-Item-cost
+New property cost will be created for Item in StandardRelations
+--CREATE: StandardRelations-Item-quantity
+New property quantity will be created for Item in StandardRelations
+--CREATE: StandardRelations-Item-taxGroup
+New property taxGroup will be created for Item in StandardRelations
+--CREATE: StandardRelations-Item-discount
+New property discount will be created for Item in StandardRelations
+--CREATE: ComplexRelations-Account-BankScrapeid
+New property BankScrapeid will be created for Account in ComplexRelations
+--CREATE: ComplexRelations-Account-Index
+New property Index will be created for Account in ComplexRelations
+--CREATE: ComplexRelations-Transaction-AccountBankScrapeid
+New property AccountBankScrapeid will be created for Transaction in ComplexRelations
+--CREATE: ComplexRelations-Transaction-AccountIndex
+New property AccountIndex will be created for Transaction in ComplexRelations
+--CREATE: ComplexRelations-Transaction-Index
+New property Index will be created for Transaction in ComplexRelations
+--CREATE: StandardRelations-Item-Invoicenumber
+New property Invoicenumber will be created for Item in StandardRelations
+--CREATE: StandardRelations-Item-Index
+New property Index will be created for Item in StandardRelations
+--CREATE: ComplexObjects-BankScrape-website
+New property website will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-BankScrape-at
+New property at will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-BankScrape-info
+New property info will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-BankScrape-externalId
+New property externalId will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-BankScrape-ranking
+New property ranking will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-BankScrape-tags
+New property tags will be created for BankScrape in ComplexObjects
+--CREATE: ComplexObjects-BankScrape-createdAt
+New property createdAt will be created for BankScrape in ComplexObjects
+--CREATE: ComplexRelations-BankScrape-website
+New property website will be created for BankScrape in ComplexRelations
+--CREATE: ComplexRelations-BankScrape-at
+New property at will be created for BankScrape in ComplexRelations
+--CREATE: ComplexRelations-BankScrape-info
+New property info will be created for BankScrape in ComplexRelations
+--CREATE: ComplexRelations-BankScrape-externalId
+New property externalId will be created for BankScrape in ComplexRelations
+--CREATE: ComplexRelations-BankScrape-ranking
+New property ranking will be created for BankScrape in ComplexRelations
+--CREATE: ComplexRelations-BankScrape-tags
+New property tags will be created for BankScrape in ComplexRelations
+--CREATE: ComplexRelations-BankScrape-createdAt
+New property createdAt will be created for BankScrape in ComplexRelations
+--CREATE: StandardObjects-Invoice-dueDate
+New property dueDate will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-total
+New property total will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-paid
+New property paid will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-canceled
+New property canceled will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-version
+New property version will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-tax
+New property tax will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-reference
+New property reference will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-createdAt
+New property createdAt will be created for Invoice in StandardObjects
+--CREATE: StandardObjects-Invoice-modifiedAt
+New property modifiedAt will be created for Invoice in StandardObjects
+--CREATE: StandardRelations-Invoice-dueDate
+New property dueDate will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-total
+New property total will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-paid
+New property paid will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-canceled
+New property canceled will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-version
+New property version will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-tax
+New property tax will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-reference
+New property reference will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-createdAt
+New property createdAt will be created for Invoice in StandardRelations
+--CREATE: StandardRelations-Invoice-modifiedAt
+New property modifiedAt will be created for Invoice in StandardRelations
+MIGRATION_DESCRIPTION*/
+
 DO $$ BEGIN
 	IF EXISTS(SELECT * FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = '-NGS-' AND c.relname = 'database_setting') THEN	
 		IF EXISTS(SELECT * FROM "-NGS-".Database_Setting WHERE Key ILIKE 'mode' AND NOT Value ILIKE 'unsafe') THEN
@@ -2933,7 +3152,6 @@ UPDATE "ComplexRelations"."Account" SET "name" = '' WHERE "name" IS NULL;
 UPDATE "ComplexRelations"."Account" SET "notes" = '' WHERE "notes" IS NULL;
 UPDATE "ComplexRelations"."Transaction" SET "date" = CURRENT_DATE WHERE "date" IS NULL;
 UPDATE "ComplexRelations"."Transaction" SET "description" = '' WHERE "description" IS NULL;
-UPDATE "ComplexRelations"."Transaction" SET "currency" = 'EUR' WHERE "currency" IS NULL;
 UPDATE "ComplexRelations"."Transaction" SET "amount" = 0 WHERE "amount" IS NULL;
 CREATE OR REPLACE FUNCTION "ComplexRelations"."FindMultiple"("id" INT DEFAULT 0, "ids" INT[] DEFAULT '{}', "start" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, "end" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP) RETURNS record AS 
 $$
@@ -3050,15 +3268,11 @@ UPDATE "StandardRelations"."Item" SET "Invoicenumber" = '' WHERE "Invoicenumber"
 UPDATE "StandardRelations"."Item" SET "Index" = 0 WHERE "Index" IS NULL;
 UPDATE "ComplexObjects"."BankScrape" SET "website" = '' WHERE "website" IS NULL;
 UPDATE "ComplexObjects"."BankScrape" SET "at" = CURRENT_TIMESTAMP WHERE "at" IS NULL;
-UPDATE "ComplexObjects"."BankScrape" SET "info" = '' WHERE "info" IS NULL;
 UPDATE "ComplexObjects"."BankScrape" SET "ranking" = 0 WHERE "ranking" IS NULL;
-UPDATE "ComplexObjects"."BankScrape" SET "tags" = '{}' WHERE "tags" IS NULL;
 UPDATE "ComplexObjects"."BankScrape" SET "createdAt" = CURRENT_TIMESTAMP WHERE "createdAt" IS NULL;
 UPDATE "ComplexRelations"."BankScrape" SET "website" = '' WHERE "website" IS NULL;
 UPDATE "ComplexRelations"."BankScrape" SET "at" = CURRENT_TIMESTAMP WHERE "at" IS NULL;
-UPDATE "ComplexRelations"."BankScrape" SET "info" = '' WHERE "info" IS NULL;
 UPDATE "ComplexRelations"."BankScrape" SET "ranking" = 0 WHERE "ranking" IS NULL;
-UPDATE "ComplexRelations"."BankScrape" SET "tags" = '{}' WHERE "tags" IS NULL;
 UPDATE "ComplexRelations"."BankScrape" SET "createdAt" = CURRENT_TIMESTAMP WHERE "createdAt" IS NULL;
 UPDATE "StandardObjects"."Invoice" SET "dueDate" = CURRENT_DATE WHERE "dueDate" IS NULL;
 UPDATE "StandardObjects"."Invoice" SET "total" = 0 WHERE "total" IS NULL;
@@ -3333,7 +3547,6 @@ ALTER TABLE "ComplexRelations"."Account" ALTER "name" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."Account" ALTER "notes" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."Transaction" ALTER "date" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."Transaction" ALTER "description" SET NOT NULL;
-ALTER TABLE "ComplexRelations"."Transaction" ALTER "currency" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."Transaction" ALTER "amount" SET NOT NULL;
 ALTER TABLE "Simple"."Post" ALTER "id" SET NOT NULL;
 ALTER TABLE "Simple"."Post" ALTER "title" SET NOT NULL;
@@ -3385,15 +3598,11 @@ DO $$ BEGIN
 END $$ LANGUAGE plpgsql;
 ALTER TABLE "ComplexObjects"."BankScrape" ALTER "website" SET NOT NULL;
 ALTER TABLE "ComplexObjects"."BankScrape" ALTER "at" SET NOT NULL;
-ALTER TABLE "ComplexObjects"."BankScrape" ALTER "info" SET NOT NULL;
 ALTER TABLE "ComplexObjects"."BankScrape" ALTER "ranking" SET NOT NULL;
-ALTER TABLE "ComplexObjects"."BankScrape" ALTER "tags" SET NOT NULL;
 ALTER TABLE "ComplexObjects"."BankScrape" ALTER "createdAt" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."BankScrape" ALTER "website" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."BankScrape" ALTER "at" SET NOT NULL;
-ALTER TABLE "ComplexRelations"."BankScrape" ALTER "info" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."BankScrape" ALTER "ranking" SET NOT NULL;
-ALTER TABLE "ComplexRelations"."BankScrape" ALTER "tags" SET NOT NULL;
 ALTER TABLE "ComplexRelations"."BankScrape" ALTER "createdAt" SET NOT NULL;
 ALTER TABLE "StandardObjects"."Invoice" ALTER "dueDate" SET NOT NULL;
 ALTER TABLE "StandardObjects"."Invoice" ALTER "total" SET NOT NULL;
@@ -3419,10 +3628,10 @@ SELECT "-NGS-".Persist_Concepts('"DSL\\ComplexModel.dsl"=>"module Complex {
 	mixin BankScrape {
 		url website;
 		timestamp at;
-		map info;
+		map? info;
 		string(50)? externalId;
 		int ranking;
-		set<string(10)> tags;
+		set<string(10)>? tags;
 		timestamp createdAt;
 	}	
 }
@@ -3486,7 +3695,7 @@ module ComplexRelations {
 	entity Transaction {
 		date date;
 		string(200) description;
-		Complex.Currency currency;
+		Complex.Currency? currency;
 		money amount;
 	}
 
@@ -3634,4 +3843,4 @@ public static partial class ChangeURI {
 		a.URI = uri;
 	}
 }'';
-"', '\x','1.0.5545.29383')
+"', '\x','1.0.5549.24693')

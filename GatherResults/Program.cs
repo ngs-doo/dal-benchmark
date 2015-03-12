@@ -52,6 +52,7 @@ namespace GatherResults
 					});
 			var javaVersion = process.StandardOutput.ReadToEnd();
 			Console.WriteLine(javaVersion);*/
+			var entity = GetherDuration("Entity", true);
 			var npgsql = GetherDuration("Npgsql", true);
 			var revenjPostgres = GetherDuration("Revenj_Postgres", true);
 			//var revenjOracle = GetherDuration("Revenj_Oracle", true);
@@ -60,6 +61,7 @@ namespace GatherResults
 			{
 				new ViewModel("Npgsql", npgsql),
 				new ViewModel("Revenj Postgres", revenjPostgres),
+				new ViewModel("Entity", entity),
 				//new ViewModel("Revenj Oracle", revenjOracle),
 			};
 			var json = JsonConvert.SerializeObject(vm);
