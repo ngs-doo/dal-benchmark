@@ -1,13 +1,12 @@
-﻿using ComplexRelations;
-using DALBenchmark;
-using Revenj.DomainPatterns;
-using StandardRelations;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
-using System.Data.Objects;
 using System.Data.Objects.DataClasses;
 using System.Linq;
+using ComplexRelations;
+using DALBenchmark;
+using Revenj.DomainPatterns;
+using StandardRelations;
 
 namespace Benchmark
 {
@@ -30,7 +29,7 @@ namespace Benchmark
 						Factories.Update,
 						Factories.GetSimpleFilter,
 						data,
-						(obj) => obj.id.ToString());
+						obj => obj.id.ToString());
 					break;
 				case BenchType.Standard_Relations:
 					Program.RunBenchmark<Invoice>(
@@ -39,7 +38,7 @@ namespace Benchmark
 						Factories.Update,
 						Factories.GetSRFilter,
 						data,
-						(obj) => obj.number);
+						obj => obj.number);
 					break;
 				case BenchType.Complex_Relations:
 					// TODO handle non-scalar properties
@@ -49,7 +48,7 @@ namespace Benchmark
 						Factories.Update,
 						Factories.GetCRFilter,
 						data,
-						(obj) => obj.id.ToString());
+						obj => obj.id.ToString());
 					break;
 				default:
 					throw new NotSupportedException("not supported");
@@ -381,7 +380,7 @@ namespace Benchmark
 				int transactionIndex = 0;
 				foreach (var a in it.accounts)
 				{
-					
+
 					var acc = new EfAccount
 					{
 						balance = a.balance,
@@ -443,7 +442,7 @@ namespace Benchmark
 
 			public IEnumerable<BankScrape> SearchSubset(int i)
 			{
-				var start = Now.AddMinutes(i-1);
+				var start = Now.AddMinutes(i - 1);
 				var end = Now.AddMinutes(i + 10);
 				return SearchSubset(it => it.createdAt >= start, it => it.createdAt <= end);
 			}
@@ -452,7 +451,7 @@ namespace Benchmark
 			{
 				var id = i.ToString();
 				var ids = new[] { i, i + 2, i + 5, i + 7 }.Select(it => it.ToString()).ToArray();
-				var start = Now.AddMinutes(i-1);
+				var start = Now.AddMinutes(i - 1);
 				var end = Now.AddMinutes(i + 6);
 				return Report(id, ids, it => it.createdAt >= start, it => it.createdAt <= end);
 			}

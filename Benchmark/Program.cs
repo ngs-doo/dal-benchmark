@@ -10,14 +10,14 @@ namespace Benchmark
 	{
 		enum BenchTarget
 		{
-			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql, Entity
+			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql, EF_Postgres
 		}
 
 		static int Main(string[] args)
 		{
 			//args = new[] { "Npgsql", "Complex_Relations", "300" };
 			//args = new[] { "Revenj_Postgres", "Standard_Objects", "1000" };
-			//args = new[] { "Revenj_Postgres", "Simple", "20000" };
+			//args = new[] { "EF_Postgres", "Simple", "10000" };
 			//args = new[] { "Revenj_Postgres", "Complex_Relations", "300" };
 			if (args.Length != 3)
 			{
@@ -77,7 +77,7 @@ namespace Benchmark
 				case BenchTarget.Revenj_Oracle:
 					RevenjBench.RunOracle(type, data);
 					break;
-				case BenchTarget.Entity:
+				case BenchTarget.EF_Postgres:
 					EntityBench.Run(type, data);
 					break;
 				default:
@@ -101,8 +101,7 @@ namespace Benchmark
 				changeExisting,
 				createFilter,
 				data,
-				(T obj) => obj.URI
-				);
+				obj => obj.URI);
 		}
 
 		public static void RunBenchmark<T>(
@@ -127,7 +126,7 @@ namespace Benchmark
 					throw new InvalidProgramException("Incorrect results when comparing aggregates from search");
 				var subset = bench.SearchSubset(i).ToList();
 				if (subset.Count != 1)
-					throw new InvalidProgramException("Incorrect results during search subset, count="+subset.Count);
+					throw new InvalidProgramException("Incorrect results during search subset, count=" + subset.Count);
 				changeExisting(tmp[0], i);
 				bench.Update(tmp);
 				changeExisting(tmp[0], i);
