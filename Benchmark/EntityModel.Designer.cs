@@ -41,7 +41,7 @@ namespace DALBenchmark
         /// </summary>
         public EfContext() : base("name=EfContext", "EfContext")
         {
-            this.ContextOptions.LazyLoadingEnabled = true;
+            this.ContextOptions.LazyLoadingEnabled = false;
             OnContextCreated();
         }
     
@@ -50,7 +50,7 @@ namespace DALBenchmark
         /// </summary>
         public EfContext(string connectionString) : base(connectionString, "EfContext")
         {
-            this.ContextOptions.LazyLoadingEnabled = true;
+            this.ContextOptions.LazyLoadingEnabled = false;
             OnContextCreated();
         }
     
@@ -59,7 +59,7 @@ namespace DALBenchmark
         /// </summary>
         public EfContext(EntityConnection connection) : base(connection, "EfContext")
         {
-            this.ContextOptions.LazyLoadingEnabled = true;
+            this.ContextOptions.LazyLoadingEnabled = false;
             OnContextCreated();
         }
     

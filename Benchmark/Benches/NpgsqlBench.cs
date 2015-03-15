@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
-using System.IO;
 using Npgsql;
 
 namespace Benchmark
@@ -10,21 +9,6 @@ namespace Benchmark
 	class NpgsqlBench
 	{
 		private static string ConnectionString = ConfigurationManager.AppSettings["PostgresConnectionString"];
-		private static Stream DbInitScript;
-
-		static NpgsqlBench()
-		{
-			DbInitScript = typeof(RevenjBench).Assembly.GetManifestResourceStream("DALBenchmark.Database.Postgres.sql");
-		}
-
-		static NpgsqlConnection Setup()
-		{
-			var conn = new NpgsqlConnection(ConnectionString);
-			var com = new NpgsqlCommand(new StreamReader(DbInitScript).ReadToEnd()) { Connection = conn };
-			conn.Open();
-			com.ExecuteNonQuery();
-			return conn;
-		}
 
 		static void RunQuery(string query)
 		{
@@ -40,31 +24,32 @@ namespace Benchmark
 
 		internal static void Run(BenchType type, int data)
 		{
-			var conn = Setup();
+			var conn = new NpgsqlConnection(ConnectionString);
+			conn.Open();
 			switch (type)
 			{
 				case BenchType.Simple:
 					Program.RunBenchmark(
 						new SimpleBench(conn),
-						Factories.CreateNewSimple,
-						Factories.Update,
-						Factories.GetSimpleFilter,
+						Factories.NewSimple,
+						Factories.UpdateSimple,
+						null,
 						data);
 					break;
 				case BenchType.Standard_Relations:
 					Program.RunBenchmark(
 						new StandardBench(conn),
-						Factories.CreateSR,
-						Factories.Update,
-						Factories.GetSRFilter,
+						Factories.NewStandard<StandardRelations.Item>,
+						Factories.UpdateStandard,
+						null,
 						data);
 					break;
 				case BenchType.Complex_Relations:
 					Program.RunBenchmark(
 						new ComplexBench(conn),
-						Factories.CreateCR,
-						Factories.Update,
-						Factories.GetCRFilter,
+						Factories.NewComplex<ComplexRelations.Account, ComplexRelations.Transaction>,
+						Factories.UpdateComplex,
+						null,
 						data);
 					break;
 				default:
@@ -75,7 +60,7 @@ namespace Benchmark
 		class SimpleBench : IBench<Simple.Post>
 		{
 			private readonly NpgsqlConnection Conn;
-			private readonly DateTime Today = DateTime.Today;
+			private readonly DateTime Today = Factories.Today;
 
 			public SimpleBench(NpgsqlConnection conn)
 			{
@@ -658,7 +643,7 @@ namespace Benchmark
 		class ComplexBench : IBench<ComplexRelations.BankScrape>
 		{
 			private readonly NpgsqlConnection Conn;
-			private readonly DateTime Now = DateTime.Now;
+			private readonly DateTime Now = Factories.Now;
 
 			public ComplexBench(NpgsqlConnection conn)
 			{

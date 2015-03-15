@@ -79,7 +79,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Benches\EntityBench.cs" />
+    <Compile Include="Benches\EfPostgresBench.cs" />
     <Compile Include="Benches\NpgsqlBench.cs" />
     <Compile Include="Benches\RevenjNpgsqlBench.cs" />
     <Compile Include="Factories.cs" />

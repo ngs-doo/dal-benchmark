@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.IO;
 using System.Linq;
-using Revenj.DatabasePersistence.Postgres;
 using Revenj.DatabasePersistence.Postgres.Npgsql;
 using Revenj.DomainPatterns;
 
@@ -12,27 +10,8 @@ namespace Benchmark
 	static class RevenjBench
 	{
 		private static string ConnectionString = ConfigurationManager.AppSettings["PostgresConnectionString"];
-		private static Stream PostgresInitScript;
-		private static readonly DateTime Now = DateTime.Now;
-		private static readonly DateTime Today = DateTime.Today;
-
-		static RevenjBench()
-		{
-			PostgresInitScript = typeof(RevenjBench).Assembly.GetManifestResourceStream("DALBenchmark.Database.Postgres.sql");
-		}
-
-		static IServiceLocator SetupPostgres()
-		{
-			using (var conn = new NpgsqlConnection(ConnectionString))
-			{
-				var com = PostgresDatabaseQuery.NewCommand(PostgresInitScript);
-				com.Connection = conn;
-				conn.Open();
-				com.ExecuteNonQuery();
-				conn.Close();
-			}
-			return DSL.Core.SetupPostgres(ConnectionString, true);
-		}
+		private static readonly DateTime Now = Factories.Now;
+		private static readonly DateTime Today = Factories.Today;
 
 		static void RunQuery(string query)
 		{
@@ -63,7 +42,7 @@ namespace Benchmark
 
 		internal static void RunPostgres(BenchType type, int data)
 		{
-			var locator = SetupPostgres();
+			var locator = DSL.Core.SetupPostgres(ConnectionString, true);
 			Execute(locator, type, data, null);
 		}
 
@@ -73,42 +52,62 @@ namespace Benchmark
 			{
 				case BenchType.Simple:
 					Program.RunBenchmark(
-						new RunBench<Simple.Post>(locator, Factories.GetSimpleFilter, GetSimpleReport, clean),
-						Factories.CreateNewSimple,
-						Factories.Update,
-						Factories.GetSimpleFilter,
+						new RunBench<Simple.Post>(
+							locator,
+							i => new Simple.Post.FindBy(Today.AddDays(i), Today.AddDays(i + 10)),
+							GetSimpleReport,
+							clean),
+						Factories.NewSimple,
+						Factories.UpdateSimple,
+						i => new Simple.Post.FindBy(Today.AddDays(i), Today.AddDays(i + 10)).IsSatisfied,
 						data);
 					break;
 				case BenchType.Standard_Objects:
 					Program.RunBenchmark(
-						new RunBench<StandardObjects.Invoice>(locator, Factories.GetSOFilter, GetSOReport, clean),
-						Factories.CreateSO,
-						Factories.Update,
-						Factories.GetSOFilter,
+						new RunBench<StandardObjects.Invoice>(
+							locator,
+							i => new StandardObjects.Invoice.FindBy(i, i + 10),
+							GetSOReport,
+							clean),
+						Factories.NewStandard<StandardObjects.Item>,
+						Factories.UpdateStandard,
+						i => new StandardObjects.Invoice.FindBy(i, i + 10).IsSatisfied,
 						data);
 					break;
 				case BenchType.Standard_Relations:
 					Program.RunBenchmark(
-						new RunBench<StandardRelations.Invoice>(locator, Factories.GetSRFilter, GetSRReport, clean),
-						Factories.CreateSR,
-						Factories.Update,
-						Factories.GetSRFilter,
+						new RunBench<StandardRelations.Invoice>(
+							locator,
+							i => new StandardRelations.Invoice.FindBy(i, i + 10),
+							GetSRReport,
+							clean),
+						Factories.NewStandard<StandardRelations.Item>,
+						Factories.UpdateStandard,
+						i => new StandardRelations.Invoice.FindBy(i, i + 10).IsSatisfied,
 						data);
 					break;
 				case BenchType.Complex_Objects:
 					Program.RunBenchmark(
-						new RunBench<ComplexObjects.BankScrape>(locator, Factories.GetCOFilter, GetCOReport, clean),
-						Factories.CreateCO,
-						Factories.Update,
-						Factories.GetCOFilter,
+						new RunBench<ComplexObjects.BankScrape>(
+							locator,
+							i => new ComplexObjects.BankScrape.FindBy(Now.AddMinutes(i), Now.AddMinutes(i + 10)),
+							GetCOReport,
+							clean),
+						Factories.NewComplex<ComplexObjects.Account, ComplexObjects.Transaction>,
+						Factories.UpdateComplex,
+						i => new ComplexObjects.BankScrape.FindBy(Now.AddMinutes(i), Now.AddMinutes(i + 10)).IsSatisfied,
 						data);
 					break;
 				default:
 					Program.RunBenchmark(
-						new RunBench<ComplexRelations.BankScrape>(locator, Factories.GetCRFilter, GetCRReport, clean),
-						Factories.CreateCR,
-						Factories.Update,
-						Factories.GetCRFilter,
+						new RunBench<ComplexRelations.BankScrape>(
+							locator,
+							i => new ComplexRelations.BankScrape.FindBy(Now.AddMinutes(i), Now.AddMinutes(i + 10)),
+							GetCRReport,
+							clean),
+						Factories.NewComplex<ComplexRelations.Account, ComplexRelations.Transaction>,
+						Factories.UpdateComplex,
+						i => new ComplexRelations.BankScrape.FindBy(Now.AddMinutes(i), Now.AddMinutes(i + 10)).IsSatisfied,
 						data);
 					break;
 			}
@@ -181,7 +180,7 @@ namespace Benchmark
 			//(it's not used anyway), but this is rarely done in practice, so we wont do it here either
 			public void Update(IEnumerable<T> values)
 			{
-				Repository.Update(values.ToArray());
+				Repository.Update(values);
 			}
 
 			public void Insert(T value)

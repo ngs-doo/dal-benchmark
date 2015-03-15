@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using Revenj.DomainPatterns;
 
 namespace Benchmark
@@ -15,10 +17,10 @@ namespace Benchmark
 
 		static int Main(string[] args)
 		{
-			//args = new[] { "Npgsql", "Complex_Relations", "300" };
+			//args = new[] { "Npgsql", "Simple", "10000" };
 			//args = new[] { "Revenj_Postgres", "Standard_Objects", "1000" };
-			//args = new[] { "EF_Postgres", "Simple", "10000" };
-			//args = new[] { "Revenj_Postgres", "Complex_Relations", "300" };
+			//args = new[] { "EF_Postgres", "Standard_Relations", "100" };
+			//args = new[] { "EF_Postgres", "Complex_Relations", "30" };
 			if (args.Length != 3)
 			{
 				Console.WriteLine(
@@ -44,6 +46,16 @@ namespace Benchmark
 			{
 				Console.WriteLine("Invalid data parameter: " + args[2]);
 				return 7;
+			}
+			var cs = ConfigurationManager.AppSettings["PostgresConnectionString"];
+			var dbScript = typeof(Program).Assembly.GetManifestResourceStream("DALBenchmark.Database.Postgres.sql");
+			using (var conn = new Revenj.DatabasePersistence.Postgres.Npgsql.NpgsqlConnection(cs))
+			{
+				var com = Revenj.DatabasePersistence.Postgres.PostgresDatabaseQuery.NewCommand(dbScript);
+				com.Connection = conn;
+				conn.Open();
+				com.ExecuteNonQuery();
+				conn.Close();
 			}
 			try
 			{
@@ -88,35 +100,17 @@ namespace Benchmark
 
 		public static void RunBenchmark<T>(
 			IBench<T> bench,
-			Func<int, T> createNew,
+			Action<T, int> fillNew,
 			Action<T, int> changeExisting,
-			Func<int, ISpecification<T>> createFilter,
-			int data
-			)
-			where T : IAggregateRoot
-		{
-			RunBenchmark<T>(
-				bench,
-				createNew,
-				changeExisting,
-				createFilter,
-				data,
-				obj => obj.URI);
-		}
-
-		public static void RunBenchmark<T>(
-			IBench<T> bench,
-			Func<int, T> createNew,
-			Action<T, int> changeExisting,
-			Func<int, ISpecification<T>> createFilter,
-			int data,
-			Func<T, string> getURI)
-			where T : IAggregateRoot
+			Func<int, Expression<Func<T, bool>>> createFilter,
+			int data)
+			where T : IAggregateRoot, new()// IEquatable<T>, new()
 		{
 			for (int i = 0; i < 10; i++)
 			{
 				bench.Clean();
-				var newObject = createNew(i);
+				var newObject = new T();
+				fillNew(newObject, i);
 				bench.Insert(newObject);
 				bench.Analyze();
 				var tmp = bench.SearchAll().ToList();
@@ -131,19 +125,24 @@ namespace Benchmark
 				bench.Update(tmp);
 				changeExisting(tmp[0], i);
 				bench.Update(tmp[0]);
-				var tq = bench.Query();
-				if (tq != null)
+				if (createFilter != null)
 				{
+					var tq = bench.Query();
 					var query = tq.ToList();
 					if (query.Count != 1)
 						throw new InvalidProgramException("Incorrect results during query");
 					if (!tmp[0].Equals(query[0]))
 						throw new InvalidProgramException("Incorrect results when comparing aggregates from query");
+					var qf = tq.Where(createFilter(i)).ToList();
+					if (qf.Count != 1)
+						throw new InvalidProgramException("Incorrect results during query filter");
+					if (!tmp[0].Equals(qf[0]))
+						throw new InvalidProgramException("Incorrect results when comparing aggregates from query filter");
 				}
-				var fs = bench.FindSingle(getURI(newObject));
+				var fs = bench.FindSingle(newObject.URI);
 				if (!fs.Equals(tmp[0]))
 					throw new InvalidProgramException("Incorrect results when comparing aggregates from find single");
-				var fm = bench.FindMany(new[] { getURI(newObject) }).ToList();
+				var fm = bench.FindMany(new[] { newObject.URI }).ToList();
 				if (fm.Count != 1)
 					throw new InvalidProgramException("Incorrect results during find many");
 				if (!fm[0].Equals(tmp[0]))
@@ -158,13 +157,17 @@ namespace Benchmark
 			bench.Clean();
 			var items = new List<T>(data);
 			for (int i = 0; i < data; i++)
-				items.Add(createNew(i));
+			{
+				var t = new T();
+				fillNew(t, i);
+				items.Add(t);
+			}
 			var lookupUris = new string[Math.Min(10, Math.Min(data / 2, data / 3 + 10) - data / 3)];
 			var sw = Stopwatch.StartNew();
 			bench.Insert(items);
 			Console.WriteLine("bulk_insert = " + sw.ElapsedMilliseconds);
 			for (int i = data / 3; i < data / 3 + lookupUris.Length; i++)
-				lookupUris[i - data / 3] = getURI(items[i]);
+				lookupUris[i - data / 3] = items[i].URI;
 			for (int i = 0; i < items.Count; i++)
 				changeExisting(items[i], i);
 			bench.Analyze();
@@ -200,8 +203,7 @@ namespace Benchmark
 					throw new InvalidProgramException("Expecting results");
 			}
 			Console.WriteLine("search_subset = " + sw.ElapsedMilliseconds);
-			var q = bench.Query();
-			if (q == null)
+			if (createFilter == null)
 			{
 				Console.WriteLine("query_all = -1");
 				Console.WriteLine("query_filter = -1");
@@ -219,7 +221,7 @@ namespace Benchmark
 				sw.Restart();
 				for (int i = 0; i < 1000; i++)
 				{
-					var cnt = bench.Query().Where(createFilter(i % items.Count / 2).IsSatisfied).ToList().Count;
+					var cnt = bench.Query().Where(createFilter(i % items.Count / 2)).ToList().Count;
 					if (cnt == 0)
 						throw new InvalidProgramException("Expecting results");
 				}
