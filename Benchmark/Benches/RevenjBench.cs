@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Linq;
 using Revenj.DatabasePersistence.Postgres.Npgsql;
 using Revenj.DomainPatterns;
+using DALBenchmark;
 
 namespace Benchmark
 {
@@ -32,7 +33,6 @@ namespace Benchmark
 			context.Delete<StandardRelations.Invoice>(context.Query<StandardRelations.Invoice>());
 			context.Delete<ComplexObjects.BankScrape>(context.Query<ComplexObjects.BankScrape>());
 			context.Delete<ComplexRelations.BankScrape>(context.Query<ComplexRelations.BankScrape>());
-			//TODO: native DB clean/analyze
 		}
 
 		internal static void RunOracle(BenchType type, int data)
@@ -42,6 +42,7 @@ namespace Benchmark
 
 		internal static void RunPostgres(BenchType type, int data)
 		{
+			Initialize.Postgres();
 			var locator = DSL.Core.SetupPostgres(ConnectionString, true);
 			Execute(locator, type, data, null);
 		}

@@ -28,6 +28,7 @@ Variety of models are tested, from small simple objects, to very complex large o
 
  * Npgsql (2.2.4.3) - used to implement manual SQL approach; talks to Postgres using binary protocol
  * Revenj (1.2.0) - implemented both as a "standard" relational approach with aggregation in a single object and as a "NoSQL" object oriented approach; Uses customized old Npgsql which talks to Postgres using text protocol
+ * Entity Framework 6 - most popular .NET ORM.
 
 ###Single table test
 
@@ -43,8 +44,7 @@ Standard pattern which is implemented as two tables in a relational database, bu
 
 ###Parent/child/child test
 
-Sometimes complex nested tables are required. Due to multiple roundtrips, bulk insert/update performs really poorly. Npgsql code is starting to be really complex and it's performing good only on single lookup test. 
-Revenj is faster in all tests and bulk update is faster in "Relational" tests (since object was only partly updated).
+Sometimes complex nested tables are required. Due to multiple roundtrips, unoptimized bulk insert/update performs really poorly. Manual SQL code is starting to be really complex. 
 
 ![Parent/child/detail](results/complex.png)
 
@@ -65,7 +65,7 @@ If you are interested in changing the models, then you can:
 
 Full results are available in [Excel spreadsheet](results/results.xlsx).
 
-Bench was run on Windows7 with Postgres 9.3 locally installed. 
+Bench was run on Windows7 with Postgres 9.3 locally installed.
 
 ###Conclusions:
 

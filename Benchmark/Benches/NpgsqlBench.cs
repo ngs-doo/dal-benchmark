@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using DALBenchmark;
 using Npgsql;
 
 namespace Benchmark
@@ -24,6 +25,7 @@ namespace Benchmark
 
 		internal static void Run(BenchType type, int data)
 		{
+			Initialize.Postgres();
 			var conn = new NpgsqlConnection(ConnectionString);
 			conn.Open();
 			switch (type)
@@ -930,7 +932,7 @@ namespace Benchmark
 								pd3.Value = j;
 								pd4.Value = t.date;
 								pd5.Value = t.description;
-								pd6.Value = t.currency.ToString();
+								pd6.Value = t.currency.Value.ToString();
 								pd7.Value = t.amount;
 								comDetail.ExecuteNonQuery();
 							}
@@ -1069,7 +1071,7 @@ namespace Benchmark
 								pdu3.Value = j;
 								pdu4.Value = t.date;
 								pdu5.Value = t.description;
-								pdu6.Value = t.currency.ToString();
+								pdu6.Value = t.currency.Value.ToString();
 								pdu7.Value = t.amount;
 								comDetailUpdate.ExecuteNonQuery();
 							}
@@ -1081,7 +1083,7 @@ namespace Benchmark
 								pdi3.Value = j;
 								pdi4.Value = t.date;
 								pdi5.Value = t.description;
-								pdi6.Value = t.currency.ToString();
+								pdi6.Value = t.currency.Value.ToString();
 								pdi7.Value = t.amount;
 								comDetailInsert.ExecuteNonQuery();
 							}

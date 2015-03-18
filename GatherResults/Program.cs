@@ -53,12 +53,14 @@ namespace GatherResults
 			var javaVersion = process.StandardOutput.ReadToEnd();
 			Console.WriteLine(javaVersion);*/
 			var efPostgres = GetherDuration("EF_Postgres", true);
+			var sqlAdoNet = GetherDuration("MsSql_AdoNet", true);
 			var npgsql = GetherDuration("Npgsql", true);
 			var revenjPostgres = GetherDuration("Revenj_Postgres", true);
 			//var revenjOracle = GetherDuration("Revenj_Oracle", true);
 			File.Copy("template.xlsx", "results.xlsx", true);
 			var vm = new ViewModel[]
 			{
+				new ViewModel("MsSql ADO.NET", sqlAdoNet),
 				new ViewModel("Npgsql", npgsql),
 				new ViewModel("Revenj Postgres", revenjPostgres),
 				new ViewModel("EF Postgres", efPostgres),

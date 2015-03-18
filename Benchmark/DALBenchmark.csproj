@@ -79,9 +79,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Benches\MsSqlBench.cs" />
     <Compile Include="Benches\EfPostgresBench.cs" />
     <Compile Include="Benches\NpgsqlBench.cs" />
     <Compile Include="Benches\RevenjNpgsqlBench.cs" />
+    <Compile Include="Database\Initialize.cs" />
     <Compile Include="Factories.cs" />
     <Compile Include="BenchType.cs" />
     <Compile Include="IBench.cs" />
@@ -107,7 +109,9 @@
       <LastGenOutput>EntityModel.Designer.cs</LastGenOutput>
     </EntityDeploy>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Database\MsSql.sql" />
+  </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Database\Postgres.sql" />
   </ItemGroup>

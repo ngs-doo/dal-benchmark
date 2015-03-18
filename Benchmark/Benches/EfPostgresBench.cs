@@ -17,6 +17,7 @@ namespace Benchmark
 
 		internal static void Run(BenchType type, int data)
 		{
+			Initialize.Postgres();
 			switch (type)
 			{
 				case BenchType.Simple:
@@ -55,6 +56,8 @@ namespace Benchmark
 				: base("name=EfContext")
 			{
 				this.Configuration.LazyLoadingEnabled = false;
+				this.Configuration.ProxyCreationEnabled = false;
+				this.Configuration.AutoDetectChangesEnabled = false;
 			}
 
 			protected override void OnModelCreating(DbModelBuilder modelBuilder)

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
@@ -12,12 +11,14 @@ namespace Benchmark
 	{
 		enum BenchTarget
 		{
-			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql, EF_Postgres
+			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql, EF_Postgres, MsSql_AdoNet
 		}
 
 		static int Main(string[] args)
 		{
-			//args = new[] { "Npgsql", "Simple", "10000" };
+			//args = new[] { "MsSql_AdoNet", "Standard_Relations", "1000" };
+			//args = new[] { "MsSql_AdoNet", "Complex_Relations", "30" };
+			//args = new[] { "Revenj_Postgres", "Standard_Relations", "1000" };
 			//args = new[] { "Revenj_Postgres", "Standard_Objects", "1000" };
 			//args = new[] { "EF_Postgres", "Standard_Relations", "100" };
 			//args = new[] { "EF_Postgres", "Complex_Relations", "30" };
@@ -46,16 +47,6 @@ namespace Benchmark
 			{
 				Console.WriteLine("Invalid data parameter: " + args[2]);
 				return 7;
-			}
-			var cs = ConfigurationManager.AppSettings["PostgresConnectionString"];
-			var dbScript = typeof(Program).Assembly.GetManifestResourceStream("DALBenchmark.Database.Postgres.sql");
-			using (var conn = new Revenj.DatabasePersistence.Postgres.Npgsql.NpgsqlConnection(cs))
-			{
-				var com = Revenj.DatabasePersistence.Postgres.PostgresDatabaseQuery.NewCommand(dbScript);
-				com.Connection = conn;
-				conn.Open();
-				com.ExecuteNonQuery();
-				conn.Close();
 			}
 			try
 			{
@@ -91,6 +82,9 @@ namespace Benchmark
 					break;
 				case BenchTarget.EF_Postgres:
 					EntityBench.Run(type, data);
+					break;
+				case BenchTarget.MsSql_AdoNet:
+					MsSqlBench.Run(type, data);
 					break;
 				default:
 					RevenjBench.RunPostgres(type, data);
