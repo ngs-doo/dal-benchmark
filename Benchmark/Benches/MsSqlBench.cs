@@ -137,12 +137,14 @@ namespace Benchmark
 			{
 				using (var com = Conn.CreateCommand())
 				{
-					com.CommandText = "SELECT title, created FROM Post WHERE id = '" + id + "'";
+					com.CommandText = "SELECT title, created FROM Post WHERE id = @id";
+					var guid = Guid.Parse(id);
+					com.Parameters.AddWithValue("id", guid);
 					using (var reader = com.ExecuteReader())
 					{
 						if (reader.Read())
 						{
-							var post = new Simple.Post { id = Guid.Parse(id), title = reader.GetString(0), created = reader.GetDateTime(1) };
+							var post = new Simple.Post { id = guid, title = reader.GetString(0), created = reader.GetDateTime(1) };
 							ChangeURI.Change(post, id);
 							return post;
 						}
@@ -155,6 +157,7 @@ namespace Benchmark
 			{
 				using (var com = Conn.CreateCommand())
 				{
+					//TODO change to params
 					com.CommandText = "SELECT id, title, created FROM Post WHERE id IN ('" + string.Join("','", ids) + "')";
 					return ExecuteCollection(com);
 				}
@@ -243,23 +246,39 @@ namespace Benchmark
 			{
 				Func<int, Guid> gg = Factories.GetGuid;
 				var result = new Report<Simple.Post>();
-				var id = gg(i).ToString();
-				var ids = string.Join("','", new[] { gg(i), gg(i + 2), gg(i + 5), gg(i + 7) });
+				var id = gg(i);
+				var ids = new[] { gg(i), gg(i + 2), gg(i + 5), gg(i + 7) };
 				var start = Today.AddDays(i);
 				var end = Today.AddDays(i + 6);
 				using (var com = Conn.CreateCommand())
 				{
-					com.CommandText = "SELECT id, title, created FROM Post WHERE id = '" + id + "'";
+					com.CommandText = "SELECT id, title, created FROM Post WHERE id = @id";
+					com.Parameters.AddWithValue("id", id);
 					result.findOne = ExecuteSingle(com);
-					com.CommandText = "SELECT id, title, created FROM Post WHERE id IN ('" + ids + "')";
+					com.CommandText = "SELECT id, title, created FROM Post WHERE id IN (@id1, @id2, @id3, @id4)";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("id1", ids[0]);
+					com.Parameters.AddWithValue("id2", ids[1]);
+					com.Parameters.AddWithValue("id3", ids[2]);
+					com.Parameters.AddWithValue("id4", ids[3]);
 					result.findMany = ExecuteCollection(com);
-					com.CommandText = "SELECT TOP 1 id, title, created FROM Post WHERE created >= '" + start.ToString("yyyy-MM-dd") + "' ORDER BY created ASC";
+					com.CommandText = "SELECT TOP 1 id, title, created FROM Post WHERE created >= @start ORDER BY created ASC";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("start", start);
 					result.findFirst = ExecuteSingle(com);
-					com.CommandText = "SELECT TOP 1 id, title, created FROM Post WHERE created <= '" + end.ToString("yyyy-MM-dd") + "' ORDER BY created DESC";
+					com.CommandText = "SELECT TOP 1 id, title, created FROM Post WHERE created <= @end ORDER BY created DESC";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("end", end);
 					result.findLast = ExecuteSingle(com);
-					com.CommandText = "SELECT TOP 5 id, title, created FROM Post WHERE created >= '" + start.ToString("yyyy-MM-dd") + "' AND created <= '" + end.ToString("yyyy-MM-dd") + "' ORDER BY created ASC";
+					com.CommandText = "SELECT TOP 5 id, title, created FROM Post WHERE created >= @start AND created <= @end ORDER BY created ASC";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("start", start);
+					com.Parameters.AddWithValue("end", end);
 					result.topFive = ExecuteCollection(com);
-					com.CommandText = "SELECT TOP 10 id, title, created FROM Post WHERE created >= '" + start.ToString("yyyy-MM-dd") + "' AND created <= '" + end.ToString("yyyy-MM-dd") + "' ORDER BY created DESC";
+					com.CommandText = "SELECT TOP 10 id, title, created FROM Post WHERE created >= @start AND created <= @end ORDER BY created DESC";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("start", start);
+					com.Parameters.AddWithValue("end", end);
 					result.lastTen = ExecuteCollection(com);
 				}
 				return result;
@@ -415,9 +434,12 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= " + i + " AND version <= " + (i + 10) + " ORDER BY number";
+					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start AND version <= @end ORDER BY number";
+					comHead.Parameters.AddWithValue("start", i);
+					comHead.Parameters.AddWithValue("end", i + 10);
 					Func<IEnumerable<string>, SqlCommand> factory = nums =>
 					{
+						//TODO: params
 						comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", nums) + "') ORDER BY Invoicenumber, [Index]";
 						return comChild;
 					};
@@ -435,8 +457,13 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = '" + id + "'";
-					comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + id + "' ORDER BY [Index]";
+					//TODO: fast variant
+					//comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = '" + id + "'";// @id";
+					//comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + id + "' ORDER BY [Index]";
+					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = @id";
+					comHead.Parameters.AddWithValue("id", id);
+					comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = @id ORDER BY [Index]";
+					comChild.Parameters.AddWithValue("id", id);
 					return ExecuteSingle(comHead, _ => comChild);
 				}
 			}
@@ -669,29 +696,42 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = '" + id + "'";
-					comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + ids + "' ORDER BY [Index]";
+					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = @id";
+					comHead.Parameters.AddWithValue("id", id);
+					comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = @id ORDER BY [Index]";
+					comChild.Parameters.AddWithValue("id", id);
 					result.findOne = ExecuteSingle(comHead, _ => comChild);
 					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY number";
+					comHead.Parameters.Clear();
 					comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", ids) + "') ORDER BY Invoicenumber, [Index]";
+					comChild.Parameters.Clear();
 					result.findMany = ExecuteCollection(comHead, _ => comChild);
-					comHead.CommandText = "SELECT TOP 1 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= " + start + " ORDER BY createdAt";
+					comHead.CommandText = "SELECT TOP 1 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start ORDER BY createdAt";
+					comHead.Parameters.Clear();
+					comHead.Parameters.AddWithValue("start", start);
 					Func<string, SqlCommand> factoryOne = n =>
 					{
-						comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + n + "' ORDER BY [Index]";
+						comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = @id ORDER BY [Index]";
+						comChild.Parameters.Clear();
+						comChild.Parameters.AddWithValue("id", n);
 						return comChild;
 					};
 					result.findFirst = ExecuteSingle(comHead, factoryOne);
-					comHead.CommandText = "SELECT TOP 1 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version <= " + end + " ORDER BY createdAt DESC";
+					comHead.CommandText = "SELECT TOP 1 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version <= @end ORDER BY createdAt DESC";
+					comHead.Parameters.Clear();
+					comHead.Parameters.AddWithValue("end", end);
 					result.findLast = ExecuteSingle(comHead, factoryOne);
-					comHead.CommandText = "SELECT TOP 5 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY createdAt, number";
+					comHead.CommandText = "SELECT TOP 5 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start AND version <= @end ORDER BY createdAt, number";
+					comHead.Parameters.Clear();
+					comHead.Parameters.AddWithValue("start", start);
+					comHead.Parameters.AddWithValue("end", end);
 					Func<IEnumerable<string>, SqlCommand> factoryMany = nums =>
 					{
 						comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", nums) + "') ORDER BY Invoicenumber, [Index]";
 						return comChild;
 					};
 					result.topFive = ExecuteCollection(comHead, factoryMany);
-					comHead.CommandText = "SELECT TOP 10 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY createdAt DESC, number";
+					comHead.CommandText = "SELECT TOP 10 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start AND version <= @end ORDER BY createdAt DESC, number";
 					result.lastTen = ExecuteCollection(comHead, factoryMany);
 				}
 				return result;
@@ -927,9 +967,13 @@ namespace Benchmark
 				using (var comChild = Conn.CreateCommand())
 				using (var comDetail = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE id = " + id;
-					comChild.CommandText = "SELECT balance, number, name, notes FROM Account WHERE BankScrapeid = " + id + " ORDER BY [Index]";
-					comDetail.CommandText = "SELECT AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid = " + id + " ORDER BY AccountIndex, [Index]";
+					var pk = int.Parse(id);
+					comHead.CommandText = "SELECT id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE id = @id";
+					comHead.Parameters.AddWithValue("id", pk);
+					comChild.CommandText = "SELECT balance, number, name, notes FROM Account WHERE BankScrapeid = @id ORDER BY [Index]";
+					comChild.Parameters.AddWithValue("id", pk);
+					comDetail.CommandText = "SELECT AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid = @id ORDER BY AccountIndex, [Index]";
+					comDetail.Parameters.AddWithValue("id", pk);
 					return ExecuteSingle(comHead, _ => comChild, _ => comDetail);
 				}
 			}
@@ -940,6 +984,7 @@ namespace Benchmark
 				using (var comChild = Conn.CreateCommand())
 				using (var comDetail = Conn.CreateCommand())
 				{
+					//TODO: params as arguments
 					comHead.CommandText = "SELECT id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE id IN (" + string.Join(",", ids) + ") ORDER BY id";
 					comChild.CommandText = "SELECT BankScrapeid, balance, number, name, notes FROM Account WHERE BankScrapeid IN (" + string.Join(",", ids) + ") ORDER BY BankScrapeid, [Index]";
 					comDetail.CommandText = "SELECT AccountBankScrapeid, AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid IN (" + string.Join(",", ids) + ") ORDER BY AccountBankScrapeid, AccountIndex, [Index]";
@@ -1258,24 +1303,46 @@ namespace Benchmark
 				using (var comChild = Conn.CreateCommand())
 				using (var comDetail = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE id = " + id;
-					comChild.CommandText = "SELECT balance, number, name, notes FROM Account WHERE BankScrapeid = " + id + " ORDER BY [Index]";
-					comDetail.CommandText = "SELECT AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid = " + id + " ORDER BY AccountIndex, [Index]";
+					comHead.CommandText = "SELECT id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE id = @id";
+					comHead.Parameters.AddWithValue("id", id);
+					comChild.CommandText = "SELECT balance, number, name, notes FROM Account WHERE BankScrapeid = @id ORDER BY [Index]";
+					comChild.Parameters.AddWithValue("id", id);
+					comDetail.CommandText = "SELECT AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid = @id ORDER BY AccountIndex, [Index]";
+					comDetail.Parameters.AddWithValue("id", id);
 					result.findOne = ExecuteSingle(comHead, _ => comChild, _ => comDetail);
-					comHead.CommandText = "SELECT id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE id IN (" + string.Join(",", ids) + ") ORDER BY id";
-					comChild.CommandText = "SELECT BankScrapeid, balance, number, name, notes FROM Account WHERE BankScrapeid IN (" + string.Join(",", ids) + ") ORDER BY BankScrapeid, [Index]";
-					comDetail.CommandText = "SELECT AccountBankScrapeid, AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid IN (" + string.Join(",", ids) + ") ORDER BY AccountBankScrapeid, AccountIndex, [Index]";
+					comHead.CommandText = "SELECT id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE id IN (@id1, @id2, @id3, @id4) ORDER BY id";
+					comHead.Parameters.Clear();
+					comHead.Parameters.AddWithValue("id1", ids[0]);
+					comHead.Parameters.AddWithValue("id2", ids[1]);
+					comHead.Parameters.AddWithValue("id3", ids[2]);
+					comHead.Parameters.AddWithValue("id4", ids[3]);
+					comChild.CommandText = "SELECT BankScrapeid, balance, number, name, notes FROM Account WHERE BankScrapeid IN (@id1, @id2, @id3, @id4) ORDER BY BankScrapeid, [Index]";
+					comChild.Parameters.Clear();
+					comChild.Parameters.AddWithValue("id1", ids[0]);
+					comChild.Parameters.AddWithValue("id2", ids[1]);
+					comChild.Parameters.AddWithValue("id3", ids[2]);
+					comChild.Parameters.AddWithValue("id4", ids[3]);
+					comDetail.CommandText = "SELECT AccountBankScrapeid, AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid IN (@id1, @id2, @id3, @id4) ORDER BY AccountBankScrapeid, AccountIndex, [Index]";
+					comDetail.Parameters.Clear();
+					comDetail.Parameters.AddWithValue("id1", ids[0]);
+					comDetail.Parameters.AddWithValue("id2", ids[1]);
+					comDetail.Parameters.AddWithValue("id3", ids[2]);
+					comDetail.Parameters.AddWithValue("id4", ids[3]);
 					result.findMany = ExecuteCollection(comHead, _ => comChild, _ => comDetail);
-					comHead.CommandText = "SELECT TOP 1id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE createdAt >= @after ORDER BY createdAt";
+					comHead.CommandText = "SELECT TOP 1 id, website, at, info, externalId, ranking, tags, createdAt FROM BankScrape WHERE createdAt >= @after ORDER BY createdAt";
 					comHead.Parameters.AddWithValue("after", Now.AddMinutes(i));
 					Func<string, SqlCommand> factory1One = pk =>
 					{
-						comChild.CommandText = "SELECT balance, number, name, notes FROM Account WHERE BankScrapeid = " + pk + " ORDER BY [Index]";
+						comChild.CommandText = "SELECT balance, number, name, notes FROM Account WHERE BankScrapeid = @pk ORDER BY [Index]";
+						comChild.Parameters.Clear();
+						comChild.Parameters.AddWithValue("pk", int.Parse(pk));
 						return comChild;
 					};
 					Func<string, SqlCommand> factory2One = pk =>
 					{
-						comDetail.CommandText = "SELECT AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid = " + pk + " ORDER BY AccountIndex, [Index]";
+						comDetail.CommandText = "SELECT AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid = @pk ORDER BY AccountIndex, [Index]";
+						comDetail.Parameters.Clear();
+						comDetail.Parameters.AddWithValue("pk", int.Parse(pk));
 						return comDetail;
 					};
 					result.findFirst = ExecuteSingle(comHead, factory1One, factory2One);
@@ -1290,11 +1357,14 @@ namespace Benchmark
 					Func<IEnumerable<string>, SqlCommand> factory1Many = pks =>
 					{
 						comChild.CommandText = "SELECT BankScrapeid, balance, number, name, notes FROM Account WHERE BankScrapeid IN (" + string.Join(",", pks) + ") ORDER BY BankScrapeid, [Index]";
+						comChild.Parameters.Clear();
+						//TODO: add params as arguments
 						return comChild;
 					};
 					Func<IEnumerable<string>, SqlCommand> factory2Many = pks =>
 					{
 						comDetail.CommandText = "SELECT AccountBankScrapeid, AccountIndex, date, description, currency, amount FROM [Transaction] WHERE AccountBankScrapeid IN (" + string.Join(",", pks) + ") ORDER BY AccountBankScrapeid, AccountIndex, [Index]";
+						comDetail.Parameters.Clear();
 						return comDetail;
 					};
 					result.topFive = ExecuteCollection(comHead, factory1Many, factory2Many);

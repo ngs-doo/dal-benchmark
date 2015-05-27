@@ -1,3 +1,5 @@
+using DALBenchmark;
+using Revenj.DomainPatterns;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -5,8 +7,6 @@ using System.Data.Entity.Infrastructure;
 using System.Data.Objects.DataClasses;
 using System.Linq;
 using System.Linq.Expressions;
-using DALBenchmark;
-using Revenj.DomainPatterns;
 
 namespace Benchmark
 {
@@ -115,14 +115,14 @@ namespace Benchmark
 				var ids = new[] { gg(i), gg(i + 2), gg(i + 5), gg(i + 7) };
 				var start = Today.AddDays(i);
 				var end = Today.AddDays(i + 6);
-				var dbSet = GetDbSet(SharedContext);
+				var dbQuery = GetDbSet(SharedContext).AsNoTracking();
 				var report = new Report<EfPost>();
-				report.findOne = dbSet.Where(it => it.id == id).OrderBy(it => it.created).FirstOrDefault();
-				report.findMany = dbSet.Where(it => ids.Contains(it.id)).OrderBy(it => it.created).ToList();
-				report.findFirst = dbSet.Where(it => it.created >= start).OrderBy(it => it.created).FirstOrDefault();
-				report.findLast = dbSet.Where(it => it.created <= end).OrderByDescending(it => it.created).FirstOrDefault();
-				report.topFive = dbSet.Where(it => it.created >= start && it.created <= end).OrderBy(it => it.created).Take(5).ToList();
-				report.lastTen = dbSet.Where(it => it.created >= start && it.created <= end).OrderByDescending(it => it.created).Take(10).ToList();
+				report.findOne = dbQuery.Where(it => it.id == id).FirstOrDefault();
+				report.findMany = dbQuery.Where(it => ids.Contains(it.id)).ToList();
+				report.findFirst = dbQuery.Where(it => it.created >= start).OrderBy(it => it.created).FirstOrDefault();
+				report.findLast = dbQuery.Where(it => it.created <= end).OrderByDescending(it => it.created).FirstOrDefault();
+				report.topFive = dbQuery.Where(it => it.created >= start && it.created <= end).OrderBy(it => it.created).Take(5).ToList();
+				report.lastTen = dbQuery.Where(it => it.created >= start && it.created <= end).OrderByDescending(it => it.created).Take(10).ToList();
 				return report;
 			}
 		}
@@ -179,14 +179,14 @@ namespace Benchmark
 				var ids = new[] { i.ToString(), (i + 2).ToString(), (i + 5).ToString(), (i + 7).ToString() };
 				var start = i;
 				var end = i + 6;
-				var dbSet = GetDbSet(SharedContext);
+				var dbQuery = GetDbSet(SharedContext).Include(p => p.Item).AsNoTracking();
 				var report = new Report<EfInvoice>();
-				report.findOne = dbSet.Where(it => it.number == id).OrderBy(it => it.createdAt).FirstOrDefault();
-				report.findMany = dbSet.Where(it => ids.Contains(it.number)).OrderBy(it => it.createdAt).ToList();
-				report.findFirst = dbSet.Where(it => it.version >= start).OrderBy(it => it.createdAt).FirstOrDefault();
-				report.findLast = dbSet.Where(it => it.version <= end).OrderByDescending(it => it.createdAt).FirstOrDefault();
-				report.topFive = dbSet.Where(it => it.version >= start && it.version <= end).OrderBy(it => it.createdAt).Take(5).ToList();
-				report.lastTen = dbSet.Where(it => it.version >= start && it.version <= end).OrderByDescending(it => it.createdAt).Take(10).ToList();
+				report.findOne = dbQuery.Where(it => it.number == id).FirstOrDefault();
+				report.findMany = dbQuery.Where(it => ids.Contains(it.number)).ToList();
+				report.findFirst = dbQuery.Where(it => it.version >= start).OrderBy(it => it.createdAt).FirstOrDefault();
+				report.findLast = dbQuery.Where(it => it.version <= end).OrderByDescending(it => it.createdAt).FirstOrDefault();
+				report.topFive = dbQuery.Where(it => it.version >= start && it.version <= end).OrderBy(it => it.createdAt).Take(5).ToList();
+				report.lastTen = dbQuery.Where(it => it.version >= start && it.version <= end).OrderByDescending(it => it.createdAt).Take(10).ToList();
 				return report;
 			}
 		}
@@ -253,14 +253,14 @@ namespace Benchmark
 				var ids = new[] { i, i + 2, i + 5, i + 7 };
 				var start = Now.AddMinutes(i);
 				var end = Now.AddMinutes(i + 6);
-				var dbSet = GetDbSet(SharedContext);
+				var dbQuery = GetDbSet(SharedContext).Include("Account.Transaction").AsNoTracking();
 				var report = new Report<EfBankScrape>();
-				report.findOne = dbSet.Where(it => it.id == i).OrderBy(it => it.createdAt).FirstOrDefault();
-				report.findMany = dbSet.Where(it => ids.Contains(it.id)).OrderBy(it => it.createdAt).ToList();
-				report.findFirst = dbSet.Where(it => it.createdAt >= start).OrderBy(it => it.createdAt).FirstOrDefault();
-				report.findLast = dbSet.Where(it => it.createdAt <= end).OrderByDescending(it => it.createdAt).FirstOrDefault();
-				report.topFive = dbSet.Where(it => it.createdAt >= start && it.createdAt <= end).OrderBy(it => it.createdAt).Take(5).ToList();
-				report.lastTen = dbSet.Where(it => it.createdAt >= start && it.createdAt <= end).OrderByDescending(it => it.createdAt).Take(10).ToList();
+				report.findOne = dbQuery.Where(it => it.id == i).FirstOrDefault();
+				report.findMany = dbQuery.Where(it => ids.Contains(it.id)).ToList();
+				report.findFirst = dbQuery.Where(it => it.createdAt >= start).OrderBy(it => it.createdAt).FirstOrDefault();
+				report.findLast = dbQuery.Where(it => it.createdAt <= end).OrderByDescending(it => it.createdAt).FirstOrDefault();
+				report.topFive = dbQuery.Where(it => it.createdAt >= start && it.createdAt <= end).OrderBy(it => it.createdAt).Take(5).ToList();
+				report.lastTen = dbQuery.Where(it => it.createdAt >= start && it.createdAt <= end).OrderByDescending(it => it.createdAt).Take(10).ToList();
 				return report;
 			}
 		}

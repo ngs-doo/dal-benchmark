@@ -1,9 +1,9 @@
-﻿using System;
+﻿using DALBenchmark;
+using Revenj.DatabasePersistence.Postgres.Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
-using DALBenchmark;
-using Revenj.DatabasePersistence.Postgres.Npgsql;
 
 namespace Benchmark
 {
@@ -603,7 +603,7 @@ namespace Benchmark
 				using (var comChild = Conn.CreateCommand())
 				{
 					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number = '" + id + "'";
-					comChild.CommandText = "SELECT product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = '" + ids + "' ORDER BY \"Index\"";
+					comChild.CommandText = "SELECT product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = '" + id + "' ORDER BY \"Index\"";
 					result.findOne = ExecuteSingle(comHead, _ => comChild);
 					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY number";
 					comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" IN ('" + string.Join("','", ids) + "') ORDER BY \"Invoicenumber\", \"Index\"";
@@ -617,14 +617,14 @@ namespace Benchmark
 					result.findFirst = ExecuteSingle(comHead, factoryOne);
 					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE version <= " + end + " ORDER BY \"createdAt\" DESC LIMIT 1";
 					result.findLast = ExecuteSingle(comHead, factoryOne);
-					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY \"createdAt\", number LIMIT 5";
+					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE version >= " + start + " AND version <= " + end + " ORDER BY \"createdAt\", number LIMIT 5";
 					Func<IEnumerable<string>, NpgsqlCommand> factoryMany = nums =>
 					{
 						comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" IN ('" + string.Join("','", nums) + "') ORDER BY \"Invoicenumber\", \"Index\"";
 						return comChild;
 					};
 					result.topFive = ExecuteCollection(comHead, factoryMany);
-					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY \"createdAt\" DESC, number LIMIT 10";
+					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE version >= " + start + " AND version <= " + end + " ORDER BY \"createdAt\" DESC, number LIMIT 10";
 					result.lastTen = ExecuteCollection(comHead, factoryMany);
 				}
 				return result;

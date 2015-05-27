@@ -99,8 +99,8 @@ BEGIN
 	IF (array_size > 0 and length(message) < 8000) THEN 
 		PERFORM pg_notify(target, message);
 	ELSEIF (array_size > 1) THEN
-		PERFORM "-NGS-".Safe_Notify(target, name, operation, (SELECT array_agg(uris[i]) FROM generate_series(1, (array_size+1)/2) i));
-		PERFORM "-NGS-".Safe_Notify(target, name, operation, (SELECT array_agg(uris[i]) FROM generate_series(array_size/2+1, array_size) i));
+		PERFORM "-NGS-".Safe_Notify(target, name, operation, (SELECT array_agg(u) FROM (SELECT unnest(uris) u LIMIT (array_size+1)/2) u));
+		PERFORM "-NGS-".Safe_Notify(target, name, operation, (SELECT array_agg(u) FROM (SELECT unnest(uris) u OFFSET (array_size+1)/2) u));
 	ELSEIF (array_size = 1) THEN
 		RAISE EXCEPTION 'uri can''t be longer than 8000 characters';
 	END IF;	
@@ -2046,21 +2046,14 @@ END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;;
 
-DO $$ BEGIN
-	IF NOT EXISTS(SELECT * FROM "-NGS-".Load_Type_Info() WHERE type_schema = 'ComplexObjects' AND type_name = '>update-BankScrape-pair<' AND column_name = 'original') THEN
-		DROP TYPE IF EXISTS "ComplexObjects".">update-BankScrape-pair<";
-		CREATE TYPE "ComplexObjects".">update-BankScrape-pair<" AS (original "ComplexObjects"."BankScrape_entity", changed "ComplexObjects"."BankScrape_entity");
-	END IF;
-END $$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION "ComplexObjects"."persist_BankScrape"(
-IN _inserted "ComplexObjects"."BankScrape_entity"[], IN _updated "ComplexObjects".">update-BankScrape-pair<"[], IN _deleted "ComplexObjects"."BankScrape_entity"[]) 
+IN _inserted "ComplexObjects"."BankScrape_entity"[], IN _updated_original "ComplexObjects"."BankScrape_entity"[], IN _updated_new "ComplexObjects"."BankScrape_entity"[], IN _deleted "ComplexObjects"."BankScrape_entity"[]) 
 	RETURNS VARCHAR AS
 $$
 DECLARE cnt int;
 DECLARE uri VARCHAR;
 DECLARE tmp record;
-DECLARE _update_count int = array_upper(_updated, 1);
+DECLARE _update_count int = array_upper(_updated_original, 1);
 DECLARE _delete_count int = array_upper(_deleted, 1);
 
 BEGIN
@@ -2076,7 +2069,7 @@ BEGIN
 	
 
 	UPDATE "ComplexObjects"."BankScrape" as _tbl SET "id" = (_u.changed)."id", "accounts" = (_u.changed)."accounts", "website" = (_u.changed)."website", "at" = (_u.changed)."at", "info" = (_u.changed)."info", "externalId" = (_u.changed)."externalId", "ranking" = (_u.changed)."ranking", "tags" = (_u.changed)."tags", "createdAt" = (_u.changed)."createdAt"
-	FROM unnest(_updated) _u
+	FROM (SELECT unnest(_updated_original) as original, unnest(_updated_new) as changed) _u
 	WHERE _tbl."id" = (_u.original)."id";
 
 	GET DIAGNOSTICS cnt = ROW_COUNT;
@@ -2152,21 +2145,14 @@ END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;;
 
-DO $$ BEGIN
-	IF NOT EXISTS(SELECT * FROM "-NGS-".Load_Type_Info() WHERE type_schema = 'Simple' AND type_name = '>update-Post-pair<' AND column_name = 'original') THEN
-		DROP TYPE IF EXISTS "Simple".">update-Post-pair<";
-		CREATE TYPE "Simple".">update-Post-pair<" AS (original "Simple"."Post_entity", changed "Simple"."Post_entity");
-	END IF;
-END $$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION "Simple"."persist_Post"(
-IN _inserted "Simple"."Post_entity"[], IN _updated "Simple".">update-Post-pair<"[], IN _deleted "Simple"."Post_entity"[]) 
+IN _inserted "Simple"."Post_entity"[], IN _updated_original "Simple"."Post_entity"[], IN _updated_new "Simple"."Post_entity"[], IN _deleted "Simple"."Post_entity"[]) 
 	RETURNS VARCHAR AS
 $$
 DECLARE cnt int;
 DECLARE uri VARCHAR;
 DECLARE tmp record;
-DECLARE _update_count int = array_upper(_updated, 1);
+DECLARE _update_count int = array_upper(_updated_original, 1);
 DECLARE _delete_count int = array_upper(_deleted, 1);
 
 BEGIN
@@ -2182,7 +2168,7 @@ BEGIN
 	
 
 	UPDATE "Simple"."Post" as _tbl SET "id" = (_u.changed)."id", "title" = (_u.changed)."title", "created" = (_u.changed)."created"
-	FROM unnest(_updated) _u
+	FROM (SELECT unnest(_updated_original) as original, unnest(_updated_new) as changed) _u
 	WHERE _tbl."id" = (_u.original)."id";
 
 	GET DIAGNOSTICS cnt = ROW_COUNT;
@@ -2247,21 +2233,14 @@ END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;;
 
-DO $$ BEGIN
-	IF NOT EXISTS(SELECT * FROM "-NGS-".Load_Type_Info() WHERE type_schema = 'StandardObjects' AND type_name = '>update-Invoice-pair<' AND column_name = 'original') THEN
-		DROP TYPE IF EXISTS "StandardObjects".">update-Invoice-pair<";
-		CREATE TYPE "StandardObjects".">update-Invoice-pair<" AS (original "StandardObjects"."Invoice_entity", changed "StandardObjects"."Invoice_entity");
-	END IF;
-END $$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION "StandardObjects"."persist_Invoice"(
-IN _inserted "StandardObjects"."Invoice_entity"[], IN _updated "StandardObjects".">update-Invoice-pair<"[], IN _deleted "StandardObjects"."Invoice_entity"[]) 
+IN _inserted "StandardObjects"."Invoice_entity"[], IN _updated_original "StandardObjects"."Invoice_entity"[], IN _updated_new "StandardObjects"."Invoice_entity"[], IN _deleted "StandardObjects"."Invoice_entity"[]) 
 	RETURNS VARCHAR AS
 $$
 DECLARE cnt int;
 DECLARE uri VARCHAR;
 DECLARE tmp record;
-DECLARE _update_count int = array_upper(_updated, 1);
+DECLARE _update_count int = array_upper(_updated_original, 1);
 DECLARE _delete_count int = array_upper(_deleted, 1);
 
 BEGIN
@@ -2277,7 +2256,7 @@ BEGIN
 	
 
 	UPDATE "StandardObjects"."Invoice" as _tbl SET "number" = (_u.changed)."number", "items" = (_u.changed)."items", "dueDate" = (_u.changed)."dueDate", "total" = (_u.changed)."total", "paid" = (_u.changed)."paid", "canceled" = (_u.changed)."canceled", "version" = (_u.changed)."version", "tax" = (_u.changed)."tax", "reference" = (_u.changed)."reference", "createdAt" = (_u.changed)."createdAt", "modifiedAt" = (_u.changed)."modifiedAt"
-	FROM unnest(_updated) _u
+	FROM (SELECT unnest(_updated_original) as original, unnest(_updated_new) as changed) _u
 	WHERE _tbl."number" = (_u.original)."number";
 
 	GET DIAGNOSTICS cnt = ROW_COUNT;
@@ -2489,21 +2468,18 @@ DECLARE "_var_StandardRelations.Item" "StandardRelations"."Item_entity"[];
 BEGIN
 
 	INSERT INTO "StandardRelations".">tmp-Invoice-insert<"
-	SELECT i, _inserted[i]
-	FROM generate_series(1, array_upper(_inserted, 1)) i;
+	SELECT row_number() over (), unnest(_inserted);
 
 	INSERT INTO "StandardRelations".">tmp-Invoice-update<"
-	SELECT i, _updated_original[i], _updated_new[i]
-	FROM generate_series(1, array_upper(_updated_new, 1)) i;
+	SELECT row_number() over (), unnest(_updated_original), unnest(_updated_new);
 
 	INSERT INTO "StandardRelations".">tmp-Invoice-delete<"
-	SELECT i, _deleted[i]
-	FROM generate_series(1, array_upper(_deleted, 1)) i;
+	SELECT row_number() over (), unnest(_deleted);
 
 	
 	FOR cnt, "_var_StandardRelations.Item" IN SELECT t.i, (t.tuple)."items" AS children FROM "StandardRelations".">tmp-Invoice-insert<" t LOOP
 		INSERT INTO "StandardRelations".">tmp-Invoice-insert758996489<"
-		SELECT cnt, index, "_var_StandardRelations.Item"[index] from generate_series(1, array_upper("_var_StandardRelations.Item", 1)) index;
+		SELECT cnt, row_number() over (), unnest("_var_StandardRelations.Item");
 	END LOOP;
 
 	INSERT INTO "StandardRelations".">tmp-Invoice-update758996489<"
@@ -2527,10 +2503,10 @@ BEGIN
 
 	FOR cnt, "_var_StandardRelations.Item" IN SELECT t.i, (t.tuple)."items" AS children FROM "StandardRelations".">tmp-Invoice-delete<" t LOOP
 		INSERT INTO "StandardRelations".">tmp-Invoice-delete758996489<"
-		SELECT cnt, index, "_var_StandardRelations.Item"[index] from generate_series(1, array_upper("_var_StandardRelations.Item", 1)) index;
+		SELECT cnt, row_number() over (), unnest("_var_StandardRelations.Item");
 	END LOOP;
 
-	RETURN "StandardRelations"."persist_Invoice_internal"(array_upper(_updated_new, 1), array_upper(_deleted, 1));
+	RETURN "StandardRelations"."persist_Invoice_internal"(array_upper(_updated_original, 1), array_upper(_deleted, 1));
 END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
@@ -2732,21 +2708,18 @@ DECLARE "_var_ComplexRelations.Transaction" "ComplexRelations"."Transaction_enti
 BEGIN
 
 	INSERT INTO "ComplexRelations".">tmp-BankScrape-insert<"
-	SELECT i, _inserted[i]
-	FROM generate_series(1, array_upper(_inserted, 1)) i;
+	SELECT row_number() over (), unnest(_inserted);
 
 	INSERT INTO "ComplexRelations".">tmp-BankScrape-update<"
-	SELECT i, _updated_original[i], _updated_new[i]
-	FROM generate_series(1, array_upper(_updated_new, 1)) i;
+	SELECT row_number() over (), unnest(_updated_original), unnest(_updated_new);
 
 	INSERT INTO "ComplexRelations".">tmp-BankScrape-delete<"
-	SELECT i, _deleted[i]
-	FROM generate_series(1, array_upper(_deleted, 1)) i;
+	SELECT row_number() over (), unnest(_deleted);
 
 	
 	FOR cnt, "_var_ComplexRelations.Account" IN SELECT t.i, (t.tuple)."accounts" AS children FROM "ComplexRelations".">tmp-BankScrape-insert<" t LOOP
 		INSERT INTO "ComplexRelations".">tmp-BankScrape-insert758926083<"
-		SELECT cnt, index, "_var_ComplexRelations.Account"[index] from generate_series(1, array_upper("_var_ComplexRelations.Account", 1)) index;
+		SELECT cnt, row_number() over (), unnest("_var_ComplexRelations.Account");
 	END LOOP;
 
 	INSERT INTO "ComplexRelations".">tmp-BankScrape-update758926083<"
@@ -2770,11 +2743,11 @@ BEGIN
 
 	FOR cnt, "_var_ComplexRelations.Account" IN SELECT t.i, (t.tuple)."accounts" AS children FROM "ComplexRelations".">tmp-BankScrape-delete<" t LOOP
 		INSERT INTO "ComplexRelations".">tmp-BankScrape-delete758926083<"
-		SELECT cnt, index, "_var_ComplexRelations.Account"[index] from generate_series(1, array_upper("_var_ComplexRelations.Account", 1)) index;
+		SELECT cnt, row_number() over (), unnest("_var_ComplexRelations.Account");
 	END LOOP;
 	FOR cnt, "_var_ComplexRelations.Transaction" IN SELECT t.i, (t.tuple)."transactions" AS children FROM "ComplexRelations".">tmp-BankScrape-insert758926083<" t LOOP
 		INSERT INTO "ComplexRelations".">tmp-BankScrape-insert2081800870<"
-		SELECT cnt, index, "_var_ComplexRelations.Transaction"[index] from generate_series(1, array_upper("_var_ComplexRelations.Transaction", 1)) index;
+		SELECT cnt, row_number() over (), unnest("_var_ComplexRelations.Transaction");
 	END LOOP;
 
 	INSERT INTO "ComplexRelations".">tmp-BankScrape-update2081800870<"
@@ -2798,10 +2771,10 @@ BEGIN
 
 	FOR cnt, "_var_ComplexRelations.Transaction" IN SELECT t.i, (t.tuple)."transactions" AS children FROM "ComplexRelations".">tmp-BankScrape-delete758926083<" t LOOP
 		INSERT INTO "ComplexRelations".">tmp-BankScrape-delete2081800870<"
-		SELECT cnt, index, "_var_ComplexRelations.Transaction"[index] from generate_series(1, array_upper("_var_ComplexRelations.Transaction", 1)) index;
+		SELECT cnt, row_number() over (), unnest("_var_ComplexRelations.Transaction");
 	END LOOP;
 
-	RETURN "ComplexRelations"."persist_BankScrape_internal"(array_upper(_updated_new, 1), array_upper(_deleted, 1));
+	RETURN "ComplexRelations"."persist_BankScrape_internal"(array_upper(_updated_original, 1), array_upper(_deleted, 1));
 END
 $$
 LANGUAGE plpgsql SECURITY DEFINER;
@@ -3384,7 +3357,7 @@ ALTER TABLE "StandardRelations"."Invoice" ALTER "tax" SET NOT NULL;
 ALTER TABLE "StandardRelations"."Invoice" ALTER "createdAt" SET NOT NULL;
 ALTER TABLE "StandardRelations"."Invoice" ALTER "modifiedAt" SET NOT NULL;
 
-SELECT "-NGS-".Persist_Concepts('"DSL\\ComplexModel.dsl"=>"module Complex {
+SELECT "-NGS-".Persist_Concepts('"c:\\Projects\\DALBenchmark\\Benchmark\\DSL\\ComplexModel.dsl"=>"module Complex {
 	enum Currency {
 		EUR;
 		USD;
@@ -3486,9 +3459,9 @@ public static partial class ChangeURI {
 	public static void Change(ComplexRelations.BankScrape a, string uri) {
 		a.URI = uri;
 	}
-}'';", "DSL\\Global.dsl"=>"defaults {
+}'';", "c:\\Projects\\DALBenchmark\\Benchmark\\DSL\\Global.dsl"=>"defaults {
 	notifications disabled;
-}", "DSL\\SimpleModel.dsl"=>"module Simple {
+}", "c:\\Projects\\DALBenchmark\\Benchmark\\DSL\\SimpleModel.dsl"=>"module Simple {
 	root Post(id) {
 		uuid id;
 		string title;
@@ -3519,7 +3492,7 @@ public static partial class ChangeURI {
 		a.URI = uri;
 	}
 }'';
-", "DSL\\StandardModel.dsl"=>"module Standard {
+", "c:\\Projects\\DALBenchmark\\Benchmark\\DSL\\StandardModel.dsl"=>"module Standard {
 	mixin Invoice {
 		date dueDate;
 		decimal total;
@@ -3608,4 +3581,4 @@ public static partial class ChangeURI {
 		a.URI = uri;
 	}
 }'';
-"', '\x','1.0.5549.24693')
+"', '\x','1.2.5625.26744');

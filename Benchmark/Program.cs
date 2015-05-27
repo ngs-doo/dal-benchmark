@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Revenj.DomainPatterns;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
-using Revenj.DomainPatterns;
 
 namespace Benchmark
 {
@@ -17,11 +17,15 @@ namespace Benchmark
 		static int Main(string[] args)
 		{
 			//args = new[] { "MsSql_AdoNet", "Standard_Relations", "1000" };
-			//args = new[] { "MsSql_AdoNet", "Complex_Relations", "30" };
+			//args = new[] { "MsSql_AdoNet", "Complex_Relations", "300" };
 			//args = new[] { "Revenj_Postgres", "Standard_Relations", "1000" };
+			//args = new[] { "Npgsql", "Standard_Relations", "1000" };
+			//args = new[] { "Revenj_Postgres", "Standard_Relations", "1000" };
+			//args = new[] { "MsSql_AdoNet", "Simple", "10000" };
+			//args = new[] { "Revenj_Postgres", "Simple", "10000" };
 			//args = new[] { "Revenj_Postgres", "Standard_Objects", "1000" };
-			//args = new[] { "EF_Postgres", "Standard_Relations", "100" };
-			//args = new[] { "EF_Postgres", "Complex_Relations", "30" };
+			//args = new[] { "EF_Postgres", "Standard_Relations", "1000" };
+			//args = new[] { "EF_Postgres", "Complex_Relations", "300" };
 			if (args.Length != 3)
 			{
 				Console.WriteLine(
@@ -100,7 +104,7 @@ namespace Benchmark
 			int data)
 			where T : IAggregateRoot, new()// IEquatable<T>, new()
 		{
-			for (int i = 0; i < 10; i++)
+			for (int i = 0; i < 100; i++)
 			{
 				bench.Clean();
 				var newObject = new T();
@@ -142,11 +146,14 @@ namespace Benchmark
 				if (!fm[0].Equals(tmp[0]))
 					throw new InvalidProgramException("Incorrect results when comparing aggregates from find many");
 				var rep = bench.Report(i);
-				if (rep.findMany.Count() != 1 || rep.lastTen.Count() != 1 || rep.topFive.Count() != 1)
-					throw new InvalidProgramException("Incorrect results during report");
-				if (!rep.findOne.Equals(tmp[0]) || !rep.findFirst.Equals(tmp[0]) || !rep.findLast.Equals(tmp[0])
-					|| !rep.findMany.First().Equals(tmp[0]) || !rep.lastTen.First().Equals(tmp[0]) || !rep.topFive.First().Equals(tmp[0]))
-					throw new InvalidProgramException("Incorrect results when comparing aggregates from report");
+				if (rep != null)
+				{
+					if (rep.findMany.Count() != 1 || rep.lastTen.Count() != 1 || rep.topFive.Count() != 1)
+						throw new InvalidProgramException("Incorrect results during report");
+					if (!rep.findOne.Equals(tmp[0]) || !rep.findFirst.Equals(tmp[0]) || !rep.findLast.Equals(tmp[0])
+						|| !rep.findMany.First().Equals(tmp[0]) || !rep.lastTen.First().Equals(tmp[0]) || !rep.topFive.First().Equals(tmp[0]))
+						throw new InvalidProgramException("Incorrect results when comparing aggregates from report");
+				}
 			}
 			bench.Clean();
 			var items = new List<T>(data);
@@ -247,7 +254,7 @@ namespace Benchmark
 				sw.Restart();
 				for (int i = 0; i < 1000; i++)
 				{
-					var rr = bench.Report(i % items.Count / 2);
+					var rr = bench.Report(i % data / 2);
 					if (rr.lastTen.Count() == 0 || rr.topFive.Count() == 0 || rr.findMany.Count() == 0
 						|| rr.findFirst == null || rr.findLast == null || rr.findOne == null)
 						throw new InvalidProgramException("Expecting results");

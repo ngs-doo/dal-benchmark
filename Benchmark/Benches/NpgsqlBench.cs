@@ -1,9 +1,9 @@
-﻿using System;
+﻿using DALBenchmark;
+using Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
-using DALBenchmark;
-using Npgsql;
 
 namespace Benchmark
 {
@@ -136,12 +136,14 @@ namespace Benchmark
 			{
 				using (var com = Conn.CreateCommand())
 				{
-					com.CommandText = "SELECT title, created FROM \"Simple\".\"Post\" WHERE id = '" + id + "'";
+					com.CommandText = "SELECT title, created FROM \"Simple\".\"Post\" WHERE id = :id";
+					var guid = Guid.Parse(id);
+					com.Parameters.Add("id", guid);
 					using (var reader = com.ExecuteReader())
 					{
 						if (reader.Read())
 						{
-							var post = new Simple.Post { id = Guid.Parse(id), title = reader.GetString(0), created = reader.GetDateTime(1) };
+							var post = new Simple.Post { id = guid, title = reader.GetString(0), created = reader.GetDateTime(1) };
 							ChangeURI.Change(post, id);
 							return post;
 						}
@@ -398,10 +400,13 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE version >= " + i + " AND version <= " + (i + 10) + " ORDER BY number";
+					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE version >= :from  AND version <= :until ORDER BY number";
+					comHead.Parameters.AddWithValue("from", i);
+					comHead.Parameters.AddWithValue("until", i + 10);
 					Func<IEnumerable<string>, NpgsqlCommand> factory = nums =>
 					{
-						comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" IN ('" + string.Join("','", nums) + "') ORDER BY \"Invoicenumber\", \"Index\"";
+						comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = ANY(:ids) ORDER BY \"Invoicenumber\", \"Index\"";
+						comChild.Parameters.AddWithValue("ids", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Varchar, nums);
 						return comChild;
 					};
 					return ExecuteCollection(comHead, factory);
@@ -418,8 +423,10 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number = '" + id + "'";
-					comChild.CommandText = "SELECT product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = '" + id + "' ORDER BY \"Index\"";
+					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number = @id";
+					comHead.Parameters.AddWithValue("id", id);
+					comChild.CommandText = "SELECT product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = @id ORDER BY \"Index\"";
+					comChild.Parameters.AddWithValue("id", id);
 					return ExecuteSingle(comHead, _ => comChild);
 				}
 			}
@@ -429,8 +436,10 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY number";
-					comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" IN ('" + string.Join("','", ids) + "') ORDER BY \"Invoicenumber\", \"Index\"";
+					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number = ANY(:ids) ORDER BY number";
+					comHead.Parameters.AddWithValue("ids", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Varchar, ids);
+					comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = ANY(:ids) ORDER BY \"Invoicenumber\", \"Index\"";
+					comChild.Parameters.AddWithValue("ids", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Varchar, ids);
 					return ExecuteCollection(comHead, _ => comChild);
 				}
 			}
@@ -613,11 +622,15 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number = '" + id + "'";
-					comChild.CommandText = "SELECT product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = '" + ids + "' ORDER BY \"Index\"";
+					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number = :id";
+					comHead.Parameters.AddWithValue("id", id);
+					comChild.CommandText = "SELECT product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = :id ORDER BY \"Index\"";
+					comChild.Parameters.AddWithValue("id", id);
 					result.findOne = ExecuteSingle(comHead, _ => comChild);
-					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY number";
-					comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" IN ('" + string.Join("','", ids) + "') ORDER BY \"Invoicenumber\", \"Index\"";
+					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE number = ANY(:ids) ORDER BY number";
+					comHead.Parameters.AddWithValue("ids", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Varchar, ids);
+					comChild.CommandText = "SELECT \"Invoicenumber\", product, cost, quantity, \"taxGroup\", discount FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = ANY(:ids) ORDER BY \"Invoicenumber\", \"Index\"";
+					comChild.Parameters.AddWithValue("ids", NpgsqlTypes.NpgsqlDbType.Array | NpgsqlTypes.NpgsqlDbType.Varchar, ids);
 					result.findMany = ExecuteCollection(comHead, _ => comChild);
 					comHead.CommandText = "SELECT number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\" FROM \"StandardRelations\".\"Invoice\" WHERE version >= " + start + " ORDER BY \"createdAt\" LIMIT 1";
 					Func<string, NpgsqlCommand> factoryOne = n =>
