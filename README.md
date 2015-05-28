@@ -29,6 +29,8 @@ Variety of models are tested, from small simple objects, to very complex large o
  * Npgsql (2.2.4.3) - used to implement manual SQL approach; talks to Postgres using binary protocol
  * Revenj (1.2.0) - implemented both as a "standard" relational approach with aggregation in a single object and as a "NoSQL" object oriented approach; Uses customized old Npgsql which talks to Postgres using text protocol
  * Entity Framework 6 - most popular .NET ORM.
+ * JDBC PostgreSQL (9.4-1201) - official JDBC driver for PostgreSQL
+ * MsSql ADO.NET - not included in results, but you can run the bench to see how it stands
 
 ###Single table test
 
@@ -73,4 +75,4 @@ Bench was run on Windows7 with Postgres 9.3 locally installed.
  * Complex models will benefit from "NoSQL" approach to modeling
  * Revenj/DSL-Platform has better performance then using SQL with data readers
  * DSL-Platform compiler will create a lot of boilerplate in the database, but it will also put that boilerplate to use
-  
+ * JVM drivers could use some performance improvements
