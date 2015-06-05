@@ -1,9 +1,9 @@
-﻿using Revenj.DomainPatterns;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using Revenj.DomainPatterns;
 
 namespace Benchmark
 {
@@ -11,7 +11,7 @@ namespace Benchmark
 	{
 		enum BenchTarget
 		{
-			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql, EF_Postgres, MsSql_AdoNet
+			Revenj_Postgres, Revenj_Oracle, Npgsql, Revenj_Npgsql, EF_Postgres, MsSql_AdoNet, Oracle_OdpNet
 		}
 
 		static int Main(string[] args)
@@ -21,8 +21,10 @@ namespace Benchmark
 			//args = new[] { "Revenj_Postgres", "Standard_Relations", "1000" };
 			//args = new[] { "Npgsql", "Standard_Relations", "1000" };
 			//args = new[] { "Revenj_Postgres", "Standard_Relations", "1000" };
-			//args = new[] { "MsSql_AdoNet", "Simple", "10000" };
+			//args = new[] { "MsSql_AdoNet", "Standard_Relations", "1000" };
 			//args = new[] { "Revenj_Postgres", "Simple", "10000" };
+			//args = new[] { "Oracle_OdpNet", "Simple", "10000" };
+			//args = new[] { "Oracle_OdpNet", "Standard_Relations", "1000" };
 			//args = new[] { "Revenj_Postgres", "Standard_Objects", "1000" };
 			//args = new[] { "EF_Postgres", "Standard_Relations", "1000" };
 			//args = new[] { "EF_Postgres", "Complex_Relations", "300" };
@@ -90,6 +92,9 @@ namespace Benchmark
 				case BenchTarget.MsSql_AdoNet:
 					MsSqlBench.Run(type, data);
 					break;
+				case BenchTarget.Oracle_OdpNet:
+					OracleBench.Run(type, data);
+					break;
 				default:
 					RevenjBench.RunPostgres(type, data);
 					break;
@@ -104,7 +109,7 @@ namespace Benchmark
 			int data)
 			where T : IAggregateRoot, new()// IEquatable<T>, new()
 		{
-			for (int i = 0; i < 100; i++)
+			for (int i = 0; i < 50; i++)
 			{
 				bench.Clean();
 				var newObject = new T();

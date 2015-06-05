@@ -1,5 +1,6 @@
 package hr.ngs.benchmark;
 
+import hr.ngs.benchmark.benches.MsSqlJdbcSimpleBench;
 import hr.ngs.benchmark.benches.PostgresJdbcSimpleBench;
 import hr.ngs.benchmark.benches.PostgresJdbcStandardBench;
 import hr.ngs.benchmark.model.Invoice;
@@ -11,7 +12,7 @@ import java.util.*;
 public class Main {
 
 	enum BenchTarget {
-		Jdbc_Postgres, Jdbc_Psql
+		Jdbc_Postgres, Jdbc_Psql, Jdbc_MsSql
 	}
 
 	enum BenchType {
@@ -29,11 +30,12 @@ public class Main {
 
 	public static void main(String[] args) {
 
-		//args = new String[]{"Jdbc_Postgres", "Standard_Relational"};
-		//args = new String[]{"Jdbc_Postgres", "Simple"};
-		if (args.length != 2) {
+		//args = new String[]{"Jdbc_Postgres", "Standard_Relational", "1000"};
+		//args = new String[]{"Jdbc_Postgres", "Simple", "10000"};
+		//args = new String[]{"Jdbc_MsSql", "Simple", "10000"};
+		if (args.length != 3) {
 			System.out.printf(
-					"Expected usage: java -jar json-benchamrk.jar (%s) (%s)",
+					"Expected usage: java -jar json-benchamrk.jar (%s) (%s) n",
 					enumTypes(BenchTarget.values()),
 					enumTypes(BenchType.values()));
 			return;
@@ -55,25 +57,37 @@ public class Main {
 			return;
 		}
 
+		int size;
 		try {
-			String driver;
+			size = Integer.parseInt(args[2]);
+		} catch (Exception ex) {
+			System.out.println("Invalid count provided: " + args[2] + ". Expecting positive integer");
+			return;
+		}
+
+		try {
+			String connectionString;
 			switch (target) {
-				case Jdbc_Postgres:
-					driver = "postgresql";
+				case Jdbc_MsSql:
+					connectionString = "jdbc:sqlserver://localhost\\sqlexpress;databaseName=Benchmark;user=bench;password=6666";
+					break;
+				case Jdbc_Psql:
+					connectionString = "jdbc:pgsql://localhost/Benchmark?user=postgres&password=6666";
 					break;
 				default:
-					driver = "pgsql";
+					connectionString = "jdbc:postgresql://localhost/Benchmark?user=postgres&password=6666";
 					break;
 			}
-			String connectionString = "jdbc:" + driver + "://localhost/Benchmark?user=postgres&password=6666";
 			switch (type) {
 				case Simple:
-					IBench<Post> simpleBench = new PostgresJdbcSimpleBench(connectionString);
-					runBenchmark(Post.class, simpleBench, Factories.newSimple(), Factories.updateSimple(), 10000);
+					IBench<Post> simpleBench = target == BenchTarget.Jdbc_MsSql
+							? new MsSqlJdbcSimpleBench(connectionString)
+							: new PostgresJdbcSimpleBench(connectionString);
+					runBenchmark(Post.class, simpleBench, Factories.newSimple(), Factories.updateSimple(), size);
 					break;
 				default:
 					IBench<Invoice> stdBench = new PostgresJdbcStandardBench(connectionString);
-					runBenchmark(Invoice.class, stdBench, Factories.newStandard(), Factories.updateStandard(), 1000);
+					runBenchmark(Invoice.class, stdBench, Factories.newStandard(), Factories.updateStandard(), size);
 					break;
 			}
 			System.exit(0);

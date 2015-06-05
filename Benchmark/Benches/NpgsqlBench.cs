@@ -1,9 +1,10 @@
-﻿using DALBenchmark;
-using Npgsql;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Text;
+using DALBenchmark;
+using Npgsql;
 
 namespace Benchmark
 {
@@ -138,7 +139,7 @@ namespace Benchmark
 				{
 					com.CommandText = "SELECT title, created FROM \"Simple\".\"Post\" WHERE id = :id";
 					var guid = Guid.Parse(id);
-					com.Parameters.Add("id", guid);
+					com.Parameters.AddWithValue("id", guid);
 					using (var reader = com.ExecuteReader())
 					{
 						if (reader.Read())
@@ -156,7 +157,16 @@ namespace Benchmark
 			{
 				using (var com = Conn.CreateCommand())
 				{
-					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE id IN ('" + string.Join("','", ids) + "')";
+					var sb = new StringBuilder(60);
+					sb.Append("SELECT id, title, created FROM \"Simple\".\"Post\" WHERE id IN (:id0");
+					com.Parameters.AddWithValue("id0", Guid.Parse(ids[0]));
+					for (int i = 1; i < ids.Length; i++)
+					{
+						sb.Append(",:id").Append(i);
+						com.Parameters.AddWithValue("id" + i, Guid.Parse(ids[i]));
+					}
+					sb.Append(")");
+					com.CommandText = sb.ToString();
 					return ExecuteCollection(com);
 				}
 			}
@@ -240,23 +250,39 @@ namespace Benchmark
 			{
 				Func<int, Guid> gg = Factories.GetGuid;
 				var result = new Report<Simple.Post>();
-				var id = gg(i).ToString();
-				var ids = string.Join("','", new[] { gg(i), gg(i + 2), gg(i + 5), gg(i + 7) });
+				var id = gg(i);
+				var ids = new[] { gg(i), gg(i + 2), gg(i + 5), gg(i + 7) };
 				var start = Today.AddDays(i);
 				var end = Today.AddDays(i + 6);
 				using (var com = Conn.CreateCommand())
 				{
-					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE id = '" + id + "'";
+					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE id = :id";
+					com.Parameters.AddWithValue("id", id);
 					result.findOne = ExecuteSingle(com);
-					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE id IN ('" + ids + "')";
+					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE id IN (:id1, :id2, :id3, :id4)";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("id1", ids[0]);
+					com.Parameters.AddWithValue("id2", ids[1]);
+					com.Parameters.AddWithValue("id3", ids[2]);
+					com.Parameters.AddWithValue("id4", ids[3]);
 					result.findMany = ExecuteCollection(com);
-					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created >= '" + start.ToString("yyyy-MM-dd") + "' ORDER BY created ASC LIMIT 1";
+					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created >= :start ORDER BY created ASC LIMIT 1";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("start", start);
 					result.findFirst = ExecuteSingle(com);
-					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created <= '" + end.ToString("yyyy-MM-dd") + "' ORDER BY created DESC LIMIT 1";
+					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created <= :end ORDER BY created DESC LIMIT 1";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("end", end);
 					result.findLast = ExecuteSingle(com);
-					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created >= '" + start.ToString("yyyy-MM-dd") + "' AND created <= '" + end.ToString("yyyy-MM-dd") + "' ORDER BY created ASC LIMIT 5";
+					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created >= :start AND created <= :end ORDER BY created ASC LIMIT 5";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("start", start);
+					com.Parameters.AddWithValue("end", end);
 					result.topFive = ExecuteCollection(com);
-					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created >= '" + start.ToString("yyyy-MM-dd") + "' AND created <= '" + end.ToString("yyyy-MM-dd") + "' ORDER BY created DESC LIMIT 10";
+					com.CommandText = "SELECT id, title, created FROM \"Simple\".\"Post\" WHERE created >= :start AND created <= :end ORDER BY created DESC LIMIT 10";
+					com.Parameters.Clear();
+					com.Parameters.AddWithValue("start", start);
+					com.Parameters.AddWithValue("end", end);
 					result.lastTen = ExecuteCollection(com);
 				}
 				return result;

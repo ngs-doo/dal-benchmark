@@ -9,7 +9,7 @@ namespace GatherResults
 	class Program
 	{
 		private static string BenchPath = "../../../app";
-		//private static string JavaPath = Environment.GetEnvironmentVariable("JAVA_HOME");
+		private static string JavaPath = Environment.GetEnvironmentVariable("JAVA_HOME");
 
 		static void Main(string[] args)
 		{
@@ -35,12 +35,12 @@ namespace GatherResults
 				}
 				if (args.Length > 0 || !File.Exists("dal-benchmark.jar"))
 				{
-					//Console.WriteLine("Unable to find benchmark jar file: dal-benchmark.jar in" + BenchPath);
-					//return;
+					Console.WriteLine("Unable to find benchmark jar file: dal-benchmark.jar in" + BenchPath);
+					return;
 				}
 				BenchPath = ".";
 			}
-			/*var java = Path.Combine(JavaPath ?? ".", "bin", "java");
+			var java = Path.Combine(JavaPath ?? ".", "bin", "java");
 			var process =
 				Process.Start(
 					new ProcessStartInfo
@@ -51,19 +51,21 @@ namespace GatherResults
 						UseShellExecute = false
 					});
 			var javaVersion = process.StandardOutput.ReadToEnd();
-			Console.WriteLine(javaVersion);*/
+			Console.WriteLine(javaVersion);
 			var efPostgres = GetherDuration("EF_Postgres", true);
 			var sqlAdoNet = GetherDuration("MsSql_AdoNet", true);
 			var npgsql = GetherDuration("Npgsql", true);
 			var revenjPostgres = GetherDuration("Revenj_Postgres", true);
+			var sqlOdpNet = GetherDuration("Oracle_OdpNet", true);
 			//var revenjOracle = GetherDuration("Revenj_Oracle", true);
 			File.Copy("template.xlsx", "results.xlsx", true);
 			var vm = new ViewModel[]
 			{
-				new ViewModel("MsSql ADO.NET", sqlAdoNet),
-				new ViewModel("Npgsql", npgsql),
-				new ViewModel("Revenj Postgres", revenjPostgres),
-				new ViewModel("EF Postgres", efPostgres),
+				new ViewModel("MsSql ADO.NET", sqlAdoNet, Database.MsSql, ".NET", ORM.None, "ADO.NET"),
+				new ViewModel("Npgsql", npgsql, Database.Postgres, ".NET", ORM.None, "ADO.NET"),
+				new ViewModel("Revenj Postgres", revenjPostgres, Database.Postgres, ".NET", ORM.Full, "Revenj"),
+				new ViewModel("EF Postgres", efPostgres, Database.Postgres, ".NET", ORM.Full, "Entity Framework"),
+				new ViewModel("Oracle ODP.NET", sqlAdoNet, Database.Oracle, ".NET", ORM.None, "ADO.NET"),
 				//new ViewModel("Revenj Oracle", revenjOracle),
 			};
 			var json = JsonConvert.SerializeObject(vm);
@@ -92,8 +94,7 @@ namespace GatherResults
 
 		static Result RunSinglePass(string description, bool exe, string target, string type, int size)
 		{
-			//var processName = exe ? Path.Combine(BenchPath, "DALBenchmark.exe") : Path.Combine(JavaPath ?? ".", "bin", "java");
-			var processName = Path.Combine(BenchPath, "DALBenchmark.exe");
+			var processName = exe ? Path.Combine(BenchPath, "DALBenchmark.exe") : Path.Combine(JavaPath ?? ".", "bin", "java");
 			var jarArg = exe ? string.Empty : "-jar \"" + Path.Combine(BenchPath, "dal-benchmark.jar") + "\" ";
 			var info = new ProcessStartInfo(processName, jarArg + target + " " + type + " " + size)
 			{
@@ -163,14 +164,38 @@ namespace GatherResults
 		public Result complexRelations;
 	}
 
+	enum Database
+	{
+		MsSql,
+		Postgres,
+		Oracle,
+		MySql
+	}
+
+
+	enum ORM
+	{
+		None,
+		Micro,
+		Full
+	}
+
 	class ViewModel
 	{
 		public string description;
+		public Database database;
+		public string platform;
+		public ORM orm;
+		public string api;
 		public Bench bench;
-		public ViewModel(string description, Bench bench)
+		public ViewModel(string description, Bench bench, Database database, string platform, ORM orm, string api)
 		{
 			this.description = description;
 			this.bench = bench;
+			this.database = database;
+			this.platform = platform;
+			this.orm = orm;
+			this.api = api;
 		}
 	}
 }

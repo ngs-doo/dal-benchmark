@@ -100,12 +100,15 @@ namespace Benchmark
 			private static List<Simple.Post> ExecuteCollection(SqlCommand com)
 			{
 				using (var reader = com.ExecuteReader())
-				{
-					var tmp = new List<Simple.Post>();
-					while (reader.Read())
-						tmp.Add(PostFactory(reader));
-					return tmp;
-				}
+					return ExtractCollection(reader);
+			}
+
+			private static List<Simple.Post> ExtractCollection(SqlDataReader reader)
+			{
+				var tmp = new List<Simple.Post>();
+				while (reader.Read())
+					tmp.Add(PostFactory(reader));
+				return tmp;
 			}
 
 			public IEnumerable<Simple.Post> SearchAll()
@@ -137,6 +140,7 @@ namespace Benchmark
 			{
 				using (var com = Conn.CreateCommand())
 				{
+					//TODO: slower with params
 					com.CommandText = "SELECT title, created FROM Post WHERE id = @id";
 					var guid = Guid.Parse(id);
 					com.Parameters.AddWithValue("id", guid);
@@ -157,7 +161,7 @@ namespace Benchmark
 			{
 				using (var com = Conn.CreateCommand())
 				{
-					//TODO change to params
+					//TODO: Twice as slow with params
 					com.CommandText = "SELECT id, title, created FROM Post WHERE id IN ('" + string.Join("','", ids) + "')";
 					return ExecuteCollection(com);
 				}
@@ -199,9 +203,9 @@ namespace Benchmark
 					var copy = new SqlBulkCopy(Conn, SqlBulkCopyOptions.CheckConstraints, tran);
 					copy.DestinationTableName = "#Tmp";
 					copy.WriteToServer(table);
-					com.CommandText = "UPDATE Post SET id = t.id, title = t.title, created = t.created FROM #Tmp t WHERE Post.id = t.uri";
-					com.ExecuteNonQuery();
-					com.CommandText = "DROP TABLE #Tmp";
+					com.CommandText = @"
+UPDATE Post SET id = t.id, title = t.title, created = t.created FROM #Tmp t WHERE Post.id = t.uri;
+DROP TABLE #Tmp";
 					com.ExecuteNonQuery();
 					tran.Commit();
 					foreach (var v in values)
@@ -252,34 +256,37 @@ namespace Benchmark
 				var end = Today.AddDays(i + 6);
 				using (var com = Conn.CreateCommand())
 				{
-					com.CommandText = "SELECT id, title, created FROM Post WHERE id = @id";
+					com.CommandText = @"
+SELECT id, title, created FROM Post WHERE id = @id;
+SELECT id, title, created FROM Post WHERE id IN (@id1, @id2, @id3, @id4);
+SELECT TOP 1 id, title, created FROM Post WHERE created >= @start ORDER BY created ASC;
+SELECT TOP 1 id, title, created FROM Post WHERE created <= @end ORDER BY created DESC;
+SELECT TOP 5 id, title, created FROM Post WHERE created >= @start AND created <= @end ORDER BY created ASC;
+SELECT TOP 10 id, title, created FROM Post WHERE created >= @start AND created <= @end ORDER BY created DESC";
 					com.Parameters.AddWithValue("id", id);
-					result.findOne = ExecuteSingle(com);
-					com.CommandText = "SELECT id, title, created FROM Post WHERE id IN (@id1, @id2, @id3, @id4)";
-					com.Parameters.Clear();
 					com.Parameters.AddWithValue("id1", ids[0]);
 					com.Parameters.AddWithValue("id2", ids[1]);
 					com.Parameters.AddWithValue("id3", ids[2]);
 					com.Parameters.AddWithValue("id4", ids[3]);
-					result.findMany = ExecuteCollection(com);
-					com.CommandText = "SELECT TOP 1 id, title, created FROM Post WHERE created >= @start ORDER BY created ASC";
-					com.Parameters.Clear();
-					com.Parameters.AddWithValue("start", start);
-					result.findFirst = ExecuteSingle(com);
-					com.CommandText = "SELECT TOP 1 id, title, created FROM Post WHERE created <= @end ORDER BY created DESC";
-					com.Parameters.Clear();
-					com.Parameters.AddWithValue("end", end);
-					result.findLast = ExecuteSingle(com);
-					com.CommandText = "SELECT TOP 5 id, title, created FROM Post WHERE created >= @start AND created <= @end ORDER BY created ASC";
-					com.Parameters.Clear();
 					com.Parameters.AddWithValue("start", start);
 					com.Parameters.AddWithValue("end", end);
-					result.topFive = ExecuteCollection(com);
-					com.CommandText = "SELECT TOP 10 id, title, created FROM Post WHERE created >= @start AND created <= @end ORDER BY created DESC";
-					com.Parameters.Clear();
-					com.Parameters.AddWithValue("start", start);
-					com.Parameters.AddWithValue("end", end);
-					result.lastTen = ExecuteCollection(com);
+					using (var reader = com.ExecuteReader())
+					{
+						if (reader.Read())
+							result.findOne = PostFactory(reader);
+						reader.NextResult();
+						result.findMany = ExtractCollection(reader);
+						reader.NextResult();
+						if (reader.Read())
+							result.findFirst = PostFactory(reader);
+						reader.NextResult();
+						if (reader.Read())
+							result.findLast = PostFactory(reader);
+						reader.NextResult();
+						result.topFive = ExtractCollection(reader);
+						reader.NextResult();
+						result.lastTen = ExtractCollection(reader);
+					}
 				}
 				return result;
 			}
@@ -316,101 +323,142 @@ namespace Benchmark
 				}
 			}
 
-			private static StandardRelations.Invoice ExecuteSingle(SqlCommand comHead, Func<string, SqlCommand> childFactory)
+			private static StandardRelations.Invoice ExecuteSingle(SqlCommand comHead, Func<SqlCommand> lazyChild)
 			{
-				StandardRelations.Invoice invoice = null;
 				using (var readerHead = comHead.ExecuteReader())
 				{
-					if (readerHead.Read())
+					return ExtractSingle(readerHead, lazyChild);
+				}
+			}
+
+			private static StandardRelations.Invoice ExtractSingle(SqlDataReader readerHead, Func<SqlCommand> lazyChild)
+			{
+				StandardRelations.Invoice invoice = null;
+				if (readerHead.Read())
+				{
+					invoice = new StandardRelations.Invoice
 					{
-						invoice = new StandardRelations.Invoice
-						{
-							number = readerHead.GetString(0),
-							dueDate = readerHead.GetDateTime(1),
-							total = readerHead.GetDecimal(2),
-							paid = readerHead.IsDBNull(3) ? null : (DateTime?)readerHead.GetDateTime(3),
-							canceled = readerHead.GetBoolean(4),
-							version = readerHead.GetInt64(5),
-							tax = readerHead.GetDecimal(6),
-							reference = readerHead.IsDBNull(7) ? null : readerHead.GetString(7),
-							createdAt = readerHead.GetDateTime(8),
-							modifiedAt = readerHead.GetDateTime(9)
-						};
-						ChangeURI.Change(invoice, invoice.number);
+						number = readerHead.GetString(0),
+						dueDate = readerHead.GetDateTime(1),
+						total = readerHead.GetDecimal(2),
+						paid = readerHead.IsDBNull(3) ? null : (DateTime?)readerHead.GetDateTime(3),
+						canceled = readerHead.GetBoolean(4),
+						version = readerHead.GetInt64(5),
+						tax = readerHead.GetDecimal(6),
+						reference = readerHead.IsDBNull(7) ? null : readerHead.GetString(7),
+						createdAt = readerHead.GetDateTime(8),
+						modifiedAt = readerHead.GetDateTime(9)
+					};
+					ChangeURI.Change(invoice, invoice.number);
+				}
+				SqlCommand childCom = null;
+				SqlDataReader readerChild = null;
+				if (lazyChild != null)
+				{
+					readerHead.Close();
+					if (invoice != null)
+					{
+						childCom = lazyChild();
+						//TODO: very slow with params
+						childCom.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + invoice.number + "' ORDER BY [Index]";
+						readerChild = childCom.ExecuteReader();
 					}
 				}
-				if (invoice != null)
+				else
 				{
-					using (var childCom = childFactory(invoice.number))
-					using (var readerChild = childCom.ExecuteReader())
+					readerHead.NextResult();
+					readerChild = readerHead;
+				}
+				if (readerChild != null)
+				{
+					while (readerChild.Read())
 					{
-						while (readerChild.Read())
+						invoice.items.Add(new StandardRelations.Item
 						{
-							invoice.items.Add(new StandardRelations.Item
-							{
-								Invoicenumber = invoice.number,
-								Index = invoice.items.Count,
-								product = readerChild.GetString(0),
-								cost = readerChild.GetDecimal(1),
-								quantity = readerChild.GetInt32(2),
-								taxGroup = readerChild.GetDecimal(3),
-								discount = readerChild.GetDecimal(4)
-							});
-						}
+							Invoicenumber = invoice.number,
+							Index = invoice.items.Count,
+							product = readerChild.GetString(0),
+							cost = readerChild.GetDecimal(1),
+							quantity = readerChild.GetInt32(2),
+							taxGroup = readerChild.GetDecimal(3),
+							discount = readerChild.GetDecimal(4)
+						});
 					}
+					if (lazyChild != null)
+						readerChild.Close();
 				}
 				return invoice;
 			}
 
-			private static StandardRelations.Invoice[] ExecuteCollection(SqlCommand comHead, Func<IEnumerable<string>, SqlCommand> childFactory)
+			private static StandardRelations.Invoice[] ExecuteCollection(SqlCommand comHead, Func<SqlCommand> lazyChild)
+			{
+				using (var readerHead = comHead.ExecuteReader())
+				{
+					return ExtractCollection(readerHead, lazyChild);
+				}
+			}
+
+			private static StandardRelations.Invoice[] ExtractCollection(SqlDataReader readerHead, Func<SqlCommand> lazyChild)
 			{
 				var map = new Dictionary<string, StandardRelations.Invoice>();
 				var order = new Dictionary<string, int>();
-				using (var readerHead = comHead.ExecuteReader())
+				while (readerHead.Read())
 				{
-					while (readerHead.Read())
+					var number = readerHead.GetString(0);
+					var invoice = new StandardRelations.Invoice
 					{
-						var number = readerHead.GetString(0);
-						var invoice = new StandardRelations.Invoice
-						{
-							number = number,
-							dueDate = readerHead.GetDateTime(1),
-							total = readerHead.GetDecimal(2),
-							paid = readerHead.IsDBNull(3) ? null : (DateTime?)readerHead.GetDateTime(3),
-							canceled = readerHead.GetBoolean(4),
-							version = readerHead.GetInt64(5),
-							tax = readerHead.GetDecimal(6),
-							reference = readerHead.IsDBNull(7) ? null : readerHead.GetString(7),
-							createdAt = readerHead.GetDateTime(8),
-							modifiedAt = readerHead.GetDateTime(9)
-						};
-						map.Add(number, invoice);
-						order.Add(number, order.Count);
-						ChangeURI.Change(invoice, invoice.number);
-					}
-					readerHead.Close();
+						number = number,
+						dueDate = readerHead.GetDateTime(1),
+						total = readerHead.GetDecimal(2),
+						paid = readerHead.IsDBNull(3) ? null : (DateTime?)readerHead.GetDateTime(3),
+						canceled = readerHead.GetBoolean(4),
+						version = readerHead.GetInt64(5),
+						tax = readerHead.GetDecimal(6),
+						reference = readerHead.IsDBNull(7) ? null : readerHead.GetString(7),
+						createdAt = readerHead.GetDateTime(8),
+						modifiedAt = readerHead.GetDateTime(9)
+					};
+					map.Add(number, invoice);
+					order.Add(number, order.Count);
+					ChangeURI.Change(invoice, invoice.number);
 				}
-				if (map.Count > 0)
+				SqlCommand childCom = null;
+				SqlDataReader readerChild = null;
+				if (lazyChild != null)
 				{
-					using (var childCom = childFactory(map.Keys))
-					using (var readerChild = childCom.ExecuteReader())
+					readerHead.Close();
+					if (map.Count > 0)
 					{
-						while (readerChild.Read())
-						{
-							var number = readerChild.GetString(0);
-							var items = map[number].items;
-							items.Add(new StandardRelations.Item
-							{
-								Invoicenumber = number,
-								Index = items.Count,
-								product = readerChild.GetString(1),
-								cost = readerChild.GetDecimal(2),
-								quantity = readerChild.GetInt32(3),
-								taxGroup = readerChild.GetDecimal(4),
-								discount = readerChild.GetDecimal(5)
-							});
-						}
+						childCom = lazyChild();
+						//TODO: very slow with params
+						childCom.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", map.Keys) + "') ORDER BY Invoicenumber, [Index]";
+						readerChild = childCom.ExecuteReader();
 					}
+				}
+				else
+				{
+					readerHead.NextResult();
+					readerChild = readerHead;
+				}
+				if (readerChild != null)
+				{
+					while (readerChild.Read())
+					{
+						var number = readerChild.GetString(0);
+						var items = map[number].items;
+						items.Add(new StandardRelations.Item
+						{
+							Invoicenumber = number,
+							Index = items.Count,
+							product = readerChild.GetString(1),
+							cost = readerChild.GetDecimal(2),
+							quantity = readerChild.GetInt32(3),
+							taxGroup = readerChild.GetDecimal(4),
+							discount = readerChild.GetDecimal(5)
+						});
+					}
+					if (lazyChild != null)
+						readerChild.Close();
 				}
 				var result = new StandardRelations.Invoice[map.Count];
 				foreach (var kv in order)
@@ -421,11 +469,11 @@ namespace Benchmark
 			public IEnumerable<StandardRelations.Invoice> SearchAll()
 			{
 				using (var comHead = Conn.CreateCommand())
-				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice ORDER BY number";
-					comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item ORDER BY Invoicenumber, [Index]";
-					return ExecuteCollection(comHead, _ => comChild);
+					comHead.CommandText = @"
+SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice ORDER BY number;
+SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item ORDER BY Invoicenumber, [Index]";
+					return ExecuteCollection(comHead, null);
 				}
 			}
 
@@ -437,13 +485,7 @@ namespace Benchmark
 					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start AND version <= @end ORDER BY number";
 					comHead.Parameters.AddWithValue("start", i);
 					comHead.Parameters.AddWithValue("end", i + 10);
-					Func<IEnumerable<string>, SqlCommand> factory = nums =>
-					{
-						//TODO: params
-						comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", nums) + "') ORDER BY Invoicenumber, [Index]";
-						return comChild;
-					};
-					return ExecuteCollection(comHead, factory);
+					return ExecuteCollection(comHead, () => comChild);
 				}
 			}
 
@@ -455,27 +497,24 @@ namespace Benchmark
 			public StandardRelations.Invoice FindSingle(string id)
 			{
 				using (var comHead = Conn.CreateCommand())
-				using (var comChild = Conn.CreateCommand())
 				{
-					//TODO: fast variant
-					//comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = '" + id + "'";// @id";
-					//comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + id + "' ORDER BY [Index]";
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = @id";
-					comHead.Parameters.AddWithValue("id", id);
-					comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = @id ORDER BY [Index]";
-					comChild.Parameters.AddWithValue("id", id);
-					return ExecuteSingle(comHead, _ => comChild);
+					//TODO: very slow with params
+					comHead.CommandText = @"
+SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = '" + id + @"';
+SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + id + "' ORDER BY [Index]";
+					return ExecuteSingle(comHead, null);
 				}
 			}
 
 			public IEnumerable<StandardRelations.Invoice> FindMany(string[] ids)
 			{
 				using (var comHead = Conn.CreateCommand())
-				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY number";
-					comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", ids) + "') ORDER BY Invoicenumber, [Index]";
-					return ExecuteCollection(comHead, _ => comChild);
+					//TODO: very slow with params
+					var inSql = "'" + string.Join("','", ids) + "'";
+					comHead.CommandText = @"SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number IN (" + inSql + @") ORDER BY number;
+SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN (" + inSql + ") ORDER BY Invoicenumber, [Index]";
+					return ExecuteCollection(comHead, null);
 				}
 			}
 
@@ -522,102 +561,89 @@ namespace Benchmark
 
 			public void Update(IEnumerable<StandardRelations.Invoice> values)
 			{
-				using (var comInfo = Conn.CreateCommand())
-				using (var comHead = Conn.CreateCommand())
-				using (var comChildInsert = Conn.CreateCommand())
-				using (var comChildUpdate = Conn.CreateCommand())
-				using (var comChildDelete = Conn.CreateCommand())
+				var tableHead = new DataTable();
+				var tableChild = new DataTable();
+				tableHead.Columns.Add("uri", typeof(string));
+				tableHead.Columns.Add("size", typeof(int));
+				tableHead.Columns.Add("number", typeof(string));
+				tableHead.Columns.Add("dueDate", typeof(DateTime));
+				tableHead.Columns.Add("total", typeof(decimal));
+				tableHead.Columns.Add("paid", typeof(DateTime));
+				tableHead.Columns.Add("canceled", typeof(bool));
+				tableHead.Columns.Add("version", typeof(int));
+				tableHead.Columns.Add("tax", typeof(decimal));
+				tableHead.Columns.Add("reference", typeof(string));
+				tableHead.Columns.Add("modifiedAt", typeof(DateTime));
+				tableHead.PrimaryKey = new[] { tableHead.Columns[0] };
+				tableChild.Columns.Add("number", typeof(string));
+				tableChild.Columns.Add("i", typeof(int));
+				tableChild.Columns.Add("product", typeof(string));
+				tableChild.Columns.Add("cost", typeof(decimal));
+				tableChild.Columns.Add("quantity", typeof(int));
+				tableChild.Columns.Add("taxGroup", typeof(decimal));
+				tableChild.Columns.Add("discount", typeof(decimal));
+				tableChild.PrimaryKey = new[] { tableChild.Columns[0], tableChild.Columns[1] };
+				foreach (var v in values)
+				{
+					tableHead.Rows.Add(v.URI, v.items.Count, v.number, v.dueDate, v.total, (object)v.paid ?? DBNull.Value, v.canceled, v.version, v.total, (object)v.reference ?? DBNull.Value, v.modifiedAt);
+					foreach (var d in v.items)
+						tableChild.Rows.Add(d.Invoicenumber, d.Index, d.product, d.cost, d.quantity, d.taxGroup, d.discount);
+				}
+				using (var com = Conn.CreateCommand())
 				{
 					var tran = Conn.BeginTransaction();
-					comInfo.CommandText = "SELECT COALESCE(MAX([Index]), -1) FROM Item WHERE Invoicenumber = @uri";
-					comHead.CommandText = "UPDATE Invoice SET number = @number, dueDate = @dueDate, total = @total, paid = @paid, canceled = @canceled, version = @version, tax = @tax, reference = @reference, modifiedAt = @modifiedAt WHERE number = @uri";
-					comChildInsert.CommandText = "INSERT INTO Item(Invoicenumber, [Index], product, cost, quantity, taxGroup, discount) VALUES(@number, @index, @product, @cost, @quantity, @taxGroup, @discount)";
-					comChildUpdate.CommandText = "UPDATE Item SET product = @product, cost = @cost, quantity = @quantity, taxGroup = @taxGroup, discount = @discount WHERE Invoicenumber = @number AND [Index] = @index";
-					comChildDelete.CommandText = "DELETE FROM Item WHERE Invoicenumber = @uri AND [Index] > @index";
-					comInfo.Transaction = tran;
-					comHead.Transaction = tran;
-					comChildInsert.Transaction = tran;
-					comChildUpdate.Transaction = tran;
-					comChildDelete.Transaction = tran;
-					var puri = new SqlParameter("uri", DbType.String);
-					var phuri = new SqlParameter("uri", DbType.String);
-					var ph1 = new SqlParameter("number", DbType.String);
-					var ph2 = new SqlParameter("dueDate", DbType.Date);
-					var ph3 = new SqlParameter("total", DbType.Decimal);
-					var ph4 = new SqlParameter("paid", DbType.DateTime);
-					var ph5 = new SqlParameter("canceled", DbType.Boolean);
-					var ph6 = new SqlParameter("version", DbType.Int64);
-					var ph7 = new SqlParameter("tax", DbType.Decimal);
-					var ph8 = new SqlParameter("reference", DbType.String);
-					var ph9 = new SqlParameter("modifiedAt", DbType.DateTime);
-					var pci1 = new SqlParameter("number", DbType.String);
-					var pci2 = new SqlParameter("index", DbType.Int32);
-					var pci3 = new SqlParameter("product", DbType.String);
-					var pci4 = new SqlParameter("cost", DbType.Decimal);
-					var pci5 = new SqlParameter("quantity", DbType.Int32);
-					var pci6 = new SqlParameter("taxGroup", DbType.Decimal);
-					var pci7 = new SqlParameter("discount", DbType.Decimal);
-					var pcu1 = new SqlParameter("number", DbType.String);
-					var pcu2 = new SqlParameter("index", DbType.Int32);
-					var pcu3 = new SqlParameter("product", DbType.String);
-					var pcu4 = new SqlParameter("cost", DbType.Decimal);
-					var pcu5 = new SqlParameter("quantity", DbType.Int32);
-					var pcu6 = new SqlParameter("taxGroup", DbType.Decimal);
-					var pcu7 = new SqlParameter("discount", DbType.Decimal);
-					var pcd1 = new SqlParameter("number", DbType.String);
-					var pcd2 = new SqlParameter("index", DbType.Int32);
-					comInfo.Parameters.Add(puri);
-					comHead.Parameters.AddRange(new[] { ph1, ph2, ph3, ph4, ph5, ph6, ph7, ph8, ph9, phuri });
-					comChildInsert.Parameters.AddRange(new[] { pci1, pci2, pci3, pci4, pci5, pci6, pci7 });
-					comChildUpdate.Parameters.AddRange(new[] { pcu1, pcu2, pcu3, pcu4, pcu5, pcu6, pcu7 });
-					comChildDelete.Parameters.AddRange(new[] { pcd1, pcd2 });
-					foreach (var item in values)
-					{
-						puri.Value = item.URI;
-						phuri.Value = item.URI;
-						var max = (int)comInfo.ExecuteScalar();
-						ph1.Value = item.number;
-						ph2.Value = item.dueDate;
-						ph3.Value = item.total;
-						ph4.Value = (object)item.paid ?? DBNull.Value;
-						ph5.Value = item.canceled;
-						ph6.Value = item.version;
-						ph7.Value = item.tax;
-						ph8.Value = (object)item.reference ?? DBNull.Value;
-						ph9.Value = item.modifiedAt;
-						comHead.ExecuteNonQuery();
-						var min = Math.Min(max, item.items.Count);
-						for (int i = 0; i <= min; i++)
-						{
-							var ch = item.items[i];
-							pcu1.Value = item.number;
-							pcu2.Value = i;
-							pcu3.Value = ch.product;
-							pcu4.Value = ch.cost;
-							pcu5.Value = ch.quantity;
-							pcu6.Value = ch.taxGroup;
-							pcu7.Value = ch.discount;
-							comChildUpdate.ExecuteNonQuery();
-						}
-						for (int i = min + 1; i < item.items.Count; i++)
-						{
-							var ch = item.items[i];
-							pci1.Value = item.number;
-							pci2.Value = i;
-							pci3.Value = ch.product;
-							pci4.Value = ch.cost;
-							pci5.Value = ch.quantity;
-							pci6.Value = ch.taxGroup;
-							pci7.Value = ch.discount;
-							comChildInsert.ExecuteNonQuery();
-						}
-						if (max > item.items.Count)
-						{
-							pcd1.Value = item.number;
-							pcd2.Value = max;
-							comChildDelete.ExecuteNonQuery();
-						}
-					}
+					com.Transaction = tran;
+					com.CommandText = @"
+CREATE TABLE #Invoice 
+( 
+	uri VARCHAR(20) PRIMARY KEY,
+	size INT NOT NULL,
+	number VARCHAR(20) NOT NULL,
+	dueDate DATE NOT NULL,
+	total DECIMAL(15,2) NOT NULL,
+	paid DATETIME,
+	canceled BIT NOT NULL,
+	version BIGINT NOT NULL,
+	tax DECIMAL(15,2) NOT NULL,
+	reference VARCHAR(15),
+	modifiedAt DATETIME NOT NULL
+);
+CREATE TABLE #Item
+(
+	number VARCHAR(20),
+	i INT,
+	PRIMARY KEY(number, i),
+	product VARCHAR(100) NOT NULL,
+	cost DECIMAL(15,2) NOT NULL,
+	quantity INT NOT NULL,
+	taxGroup DECIMAL(5,1) NOT NULL,
+	discount DECIMAL(5,2) NOT NULL
+)
+";
+					com.ExecuteNonQuery();
+					var copy = new SqlBulkCopy(Conn, SqlBulkCopyOptions.CheckConstraints, tran);
+					copy.DestinationTableName = "#Invoice";
+					copy.WriteToServer(tableHead);
+					copy.DestinationTableName = "#Item";
+					copy.WriteToServer(tableChild);
+					com.CommandText = @"
+UPDATE i SET number = t.number, dueDate = t.dueDate, total = t.total, paid = t.paid, canceled = t.canceled, version = t.version, tax = t.tax, reference = t.reference, modifiedAt = t.modifiedAt 
+FROM Invoice i
+INNER JOIN #Invoice t ON i.number = t.uri;
+DELETE i 
+FROM Item i 
+INNER JOIN #Invoice t ON i.Invoicenumber = t.number AND i.[Index] > t.size;
+UPDATE i SET product = t.product, cost = t.cost, quantity = t.quantity, taxGroup = t.taxGroup, discount = t.discount 
+FROM Item i
+INNER JOIN #Item t ON i.invoiceNumber = t.number AND i.[Index] = t.i;
+INSERT INTO Item(Invoicenumber, [Index], product, cost, quantity, taxGroup, discount) 
+SELECT t.number, t.i, t.product, t.cost, t.quantity, t.taxGroup, t.discount
+FROM #Item t
+LEFT JOIN Item i ON i.invoiceNumber = t.number AND i.[Index] = t.i
+WHERE i.invoiceNumber IS NULL;
+DROP TABLE #Invoice;
+DROP TABLE #Item";
+					com.ExecuteNonQuery();
 					tran.Commit();
 					foreach (var v in values)
 						ChangeURI.Change(v, v.number);
@@ -681,9 +707,104 @@ namespace Benchmark
 				ChangeURI.Change(item, item.number);
 			}
 
-			public void Update(StandardRelations.Invoice value)
+			public void Update(StandardRelations.Invoice item)
 			{
-				Update(new[] { value });
+				using (var comInfo = Conn.CreateCommand())
+				using (var comHead = Conn.CreateCommand())
+				using (var comChildInsert = Conn.CreateCommand())
+				using (var comChildUpdate = Conn.CreateCommand())
+				using (var comChildDelete = Conn.CreateCommand())
+				{
+					var tran = Conn.BeginTransaction();
+					comInfo.CommandText = "SELECT COALESCE(MAX([Index]), -1) FROM Item WHERE Invoicenumber = @uri";
+					comHead.CommandText = "UPDATE Invoice SET number = @number, dueDate = @dueDate, total = @total, paid = @paid, canceled = @canceled, version = @version, tax = @tax, reference = @reference, modifiedAt = @modifiedAt WHERE number = @uri";
+					comChildInsert.CommandText = "INSERT INTO Item(Invoicenumber, [Index], product, cost, quantity, taxGroup, discount) VALUES(@number, @index, @product, @cost, @quantity, @taxGroup, @discount)";
+					comChildUpdate.CommandText = "UPDATE Item SET product = @product, cost = @cost, quantity = @quantity, taxGroup = @taxGroup, discount = @discount WHERE Invoicenumber = @number AND [Index] = @index";
+					comChildDelete.CommandText = "DELETE FROM Item WHERE Invoicenumber = @uri AND [Index] > @index";
+					comInfo.Transaction = tran;
+					comHead.Transaction = tran;
+					comChildInsert.Transaction = tran;
+					comChildUpdate.Transaction = tran;
+					comChildDelete.Transaction = tran;
+					var puri = new SqlParameter("uri", DbType.String);
+					var phuri = new SqlParameter("uri", DbType.String);
+					var ph1 = new SqlParameter("number", DbType.String);
+					var ph2 = new SqlParameter("dueDate", DbType.Date);
+					var ph3 = new SqlParameter("total", DbType.Decimal);
+					var ph4 = new SqlParameter("paid", DbType.DateTime);
+					var ph5 = new SqlParameter("canceled", DbType.Boolean);
+					var ph6 = new SqlParameter("version", DbType.Int64);
+					var ph7 = new SqlParameter("tax", DbType.Decimal);
+					var ph8 = new SqlParameter("reference", DbType.String);
+					var ph9 = new SqlParameter("modifiedAt", DbType.DateTime);
+					var pci1 = new SqlParameter("number", DbType.String);
+					var pci2 = new SqlParameter("index", DbType.Int32);
+					var pci3 = new SqlParameter("product", DbType.String);
+					var pci4 = new SqlParameter("cost", DbType.Decimal);
+					var pci5 = new SqlParameter("quantity", DbType.Int32);
+					var pci6 = new SqlParameter("taxGroup", DbType.Decimal);
+					var pci7 = new SqlParameter("discount", DbType.Decimal);
+					var pcu1 = new SqlParameter("number", DbType.String);
+					var pcu2 = new SqlParameter("index", DbType.Int32);
+					var pcu3 = new SqlParameter("product", DbType.String);
+					var pcu4 = new SqlParameter("cost", DbType.Decimal);
+					var pcu5 = new SqlParameter("quantity", DbType.Int32);
+					var pcu6 = new SqlParameter("taxGroup", DbType.Decimal);
+					var pcu7 = new SqlParameter("discount", DbType.Decimal);
+					var pcd1 = new SqlParameter("number", DbType.String);
+					var pcd2 = new SqlParameter("index", DbType.Int32);
+					comInfo.Parameters.Add(puri);
+					comHead.Parameters.AddRange(new[] { ph1, ph2, ph3, ph4, ph5, ph6, ph7, ph8, ph9, phuri });
+					comChildInsert.Parameters.AddRange(new[] { pci1, pci2, pci3, pci4, pci5, pci6, pci7 });
+					comChildUpdate.Parameters.AddRange(new[] { pcu1, pcu2, pcu3, pcu4, pcu5, pcu6, pcu7 });
+					comChildDelete.Parameters.AddRange(new[] { pcd1, pcd2 });
+					puri.Value = item.URI;
+					phuri.Value = item.URI;
+					var max = (int)comInfo.ExecuteScalar();
+					ph1.Value = item.number;
+					ph2.Value = item.dueDate;
+					ph3.Value = item.total;
+					ph4.Value = (object)item.paid ?? DBNull.Value;
+					ph5.Value = item.canceled;
+					ph6.Value = item.version;
+					ph7.Value = item.tax;
+					ph8.Value = (object)item.reference ?? DBNull.Value;
+					ph9.Value = item.modifiedAt;
+					comHead.ExecuteNonQuery();
+					var min = Math.Min(max, item.items.Count);
+					for (int i = 0; i <= min; i++)
+					{
+						var ch = item.items[i];
+						pcu1.Value = item.number;
+						pcu2.Value = i;
+						pcu3.Value = ch.product;
+						pcu4.Value = ch.cost;
+						pcu5.Value = ch.quantity;
+						pcu6.Value = ch.taxGroup;
+						pcu7.Value = ch.discount;
+						comChildUpdate.ExecuteNonQuery();
+					}
+					for (int i = min + 1; i < item.items.Count; i++)
+					{
+						var ch = item.items[i];
+						pci1.Value = item.number;
+						pci2.Value = i;
+						pci3.Value = ch.product;
+						pci4.Value = ch.cost;
+						pci5.Value = ch.quantity;
+						pci6.Value = ch.taxGroup;
+						pci7.Value = ch.discount;
+						comChildInsert.ExecuteNonQuery();
+					}
+					if (max > item.items.Count)
+					{
+						pcd1.Value = item.number;
+						pcd2.Value = max;
+						comChildDelete.ExecuteNonQuery();
+					}
+					tran.Commit();
+					ChangeURI.Change(item, item.number);
+				}
 			}
 
 			public Report<StandardRelations.Invoice> Report(int i)
@@ -696,43 +817,33 @@ namespace Benchmark
 				using (var comHead = Conn.CreateCommand())
 				using (var comChild = Conn.CreateCommand())
 				{
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = @id";
-					comHead.Parameters.AddWithValue("id", id);
-					comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = @id ORDER BY [Index]";
-					comChild.Parameters.AddWithValue("id", id);
-					result.findOne = ExecuteSingle(comHead, _ => comChild);
-					comHead.CommandText = "SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number IN ('" + string.Join("','", ids) + "') ORDER BY number";
-					comHead.Parameters.Clear();
-					comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", ids) + "') ORDER BY Invoicenumber, [Index]";
-					comChild.Parameters.Clear();
-					result.findMany = ExecuteCollection(comHead, _ => comChild);
-					comHead.CommandText = "SELECT TOP 1 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start ORDER BY createdAt";
-					comHead.Parameters.Clear();
+					var inSql = string.Join("','", ids);
+					comHead.CommandText = @"
+SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number = '" + id + @"';
+SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = '" + id + @"' ORDER BY [Index];
+SELECT number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE number IN ('" + inSql + @"') ORDER BY number;
+SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + inSql + @"') ORDER BY Invoicenumber, [Index];
+SELECT TOP 1 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start ORDER BY createdAt";
 					comHead.Parameters.AddWithValue("start", start);
-					Func<string, SqlCommand> factoryOne = n =>
+					using (var reader = comHead.ExecuteReader())
 					{
-						comChild.CommandText = "SELECT product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber = @id ORDER BY [Index]";
-						comChild.Parameters.Clear();
-						comChild.Parameters.AddWithValue("id", n);
-						return comChild;
-					};
-					result.findFirst = ExecuteSingle(comHead, factoryOne);
+						result.findOne = ExtractSingle(reader, null);
+						reader.NextResult();
+						result.findMany = ExtractCollection(reader, null);
+						reader.NextResult();
+						result.findFirst = ExtractSingle(reader, () => comChild);
+					}
 					comHead.CommandText = "SELECT TOP 1 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version <= @end ORDER BY createdAt DESC";
 					comHead.Parameters.Clear();
 					comHead.Parameters.AddWithValue("end", end);
-					result.findLast = ExecuteSingle(comHead, factoryOne);
+					result.findLast = ExecuteSingle(comHead, () => comChild);
 					comHead.CommandText = "SELECT TOP 5 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start AND version <= @end ORDER BY createdAt, number";
 					comHead.Parameters.Clear();
 					comHead.Parameters.AddWithValue("start", start);
 					comHead.Parameters.AddWithValue("end", end);
-					Func<IEnumerable<string>, SqlCommand> factoryMany = nums =>
-					{
-						comChild.CommandText = "SELECT Invoicenumber, product, cost, quantity, taxGroup, discount FROM Item WHERE Invoicenumber IN ('" + string.Join("','", nums) + "') ORDER BY Invoicenumber, [Index]";
-						return comChild;
-					};
-					result.topFive = ExecuteCollection(comHead, factoryMany);
+					result.topFive = ExecuteCollection(comHead, () => comChild);
 					comHead.CommandText = "SELECT TOP 10 number, dueDate, total, paid, canceled, version, tax, reference, createdAt, modifiedAt FROM Invoice WHERE version >= @start AND version <= @end ORDER BY createdAt DESC, number";
-					result.lastTen = ExecuteCollection(comHead, factoryMany);
+					result.lastTen = ExecuteCollection(comHead, () => comChild);
 				}
 				return result;
 			}

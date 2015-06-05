@@ -47,6 +47,9 @@
     <Reference Include="Npgsql.EntityFramework">
       <HintPath>..\app\Npgsql.EntityFramework.dll</HintPath>
     </Reference>
+    <Reference Include="Oracle.ManagedDataAccess">
+      <HintPath>..\app\Oracle.ManagedDataAccess.dll</HintPath>
+    </Reference>
     <Reference Include="Revenj.Core">
       <HintPath>..\app\Revenj.Core.dll</HintPath>
     </Reference>
@@ -79,6 +82,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Benches\OracleBench.cs" />
     <Compile Include="Benches\MsSqlBench.cs" />
     <Compile Include="Benches\EfPostgresBench.cs" />
     <Compile Include="Benches\NpgsqlBench.cs" />
@@ -114,6 +118,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Database\Postgres.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Database\Oracle.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
