@@ -1,26 +1,25 @@
 package hr.ngs.benchmark.model;
 
-import hr.ngs.benchmark.IAggregateRoot;
-import org.joda.time.DateTime;
-import org.joda.time.LocalDate;
+import hr.ngs.benchmark.AggregateRoot;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
-public class Invoice implements IAggregateRoot {
+public class Invoice implements AggregateRoot {
 	public String number;
 	public LocalDate dueDate;
 	public BigDecimal total;
-	public DateTime paid;
+	public LocalDateTime paid;
 	public boolean canceled;
 	public long version;
 	public BigDecimal tax;
 	public String reference;
-	public DateTime createdAt;
-	public DateTime modifiedAt;
-	public List<Item> items = new ArrayList<Item>();
+	public LocalDateTime createdAt;
+	public LocalDateTime modifiedAt;
+	public List<Item> items = new ArrayList<>();
 	private String URI;
 
 	public Invoice() {
@@ -28,13 +27,13 @@ public class Invoice implements IAggregateRoot {
 		dueDate = LocalDate.now();
 		total = BigDecimal.ZERO;
 		tax = BigDecimal.ZERO;
-		createdAt = DateTime.now();
-		modifiedAt = DateTime.now();
+		createdAt = LocalDateTime.now();
+		modifiedAt = LocalDateTime.now();
 	}
 
 	public Invoice(
-			String number, LocalDate dueDate, BigDecimal total, DateTime paid, boolean canceled, long version,
-			BigDecimal tax, String reference, DateTime createdAt, DateTime modifiedAt) {
+			String number, LocalDate dueDate, BigDecimal total, LocalDateTime paid, boolean canceled, long version,
+			BigDecimal tax, String reference, LocalDateTime createdAt, LocalDateTime modifiedAt) {
 		this.number = number;
 		this.dueDate = dueDate;
 		this.total = total;

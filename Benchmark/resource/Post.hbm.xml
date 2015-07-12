@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC 
+ "-//Hibernate/Hibernate Mapping DTD//EN"
+ "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd"> 
+
+<hibernate-mapping>
+   <class name="hr.ngs.benchmark.model.Post" table='"Post"' schema='"Simple"'>
+      <id name="id" type="pg-uuid" column="id" />
+      <property name="title" column="title" type="string"/>
+      <property name="created" column="created" type="org.hibernate.type.LocalDateType"/>
+   </class>
+</hibernate-mapping>

@@ -1,5 +1,5 @@
 package hr.ngs.benchmark;
 
-public interface IAggregateRoot {
+public interface AggregateRoot {
 	String getURI();
 }

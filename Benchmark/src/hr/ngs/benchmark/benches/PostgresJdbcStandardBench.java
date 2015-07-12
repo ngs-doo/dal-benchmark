@@ -1,16 +1,16 @@
 package hr.ngs.benchmark.benches;
 
-import hr.ngs.benchmark.IBench;
+import hr.ngs.benchmark.Bench;
 import hr.ngs.benchmark.Report;
 import hr.ngs.benchmark.model.Invoice;
-import org.joda.time.DateTime;
-import org.joda.time.LocalDate;
 
 import java.sql.*;
 import java.sql.Date;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Stream;
 
-public class PostgresJdbcStandardBench implements IBench<Invoice> {
+public class PostgresJdbcStandardBench implements Bench<Invoice> {
 	private final Connection connection;
 
 	public PostgresJdbcStandardBench(String connectionString) throws SQLException {
@@ -50,15 +50,15 @@ public class PostgresJdbcStandardBench implements IBench<Invoice> {
 			}
 			Invoice invoice = new Invoice(
 					rsHead.getString(1),
-					new LocalDate(rsHead.getDate(2)),
+					rsHead.getDate(2).toLocalDate(),
 					rsHead.getBigDecimal(3),
-					rsHead.getObject(4) == null ? null : new DateTime(rsHead.getTimestamp(4)),
+					rsHead.getObject(4) == null ? null : rsHead.getTimestamp(4).toLocalDateTime(),
 					rsHead.getBoolean(5),
 					rsHead.getLong(6),
 					rsHead.getBigDecimal(7),
 					rsHead.getString(8),
-					new DateTime(rsHead.getTimestamp(9)),
-					new DateTime(rsHead.getTimestamp(10)));
+					rsHead.getTimestamp(9).toLocalDateTime(),
+					rsHead.getTimestamp(10).toLocalDateTime());
 			if (setPk) {
 				stChild.setString(1, invoice.number);
 			}
@@ -82,22 +82,22 @@ public class PostgresJdbcStandardBench implements IBench<Invoice> {
 			PreparedStatement stChild,
 			Connection connection,
 			boolean setPks) throws SQLException {
-		Map<String, Invoice> map = new HashMap<String, Invoice>();
-		Map<String, Integer> order = new HashMap<String, Integer>();
+		Map<String, Invoice> map = new HashMap<>();
+		Map<String, Integer> order = new HashMap<>();
 		try (ResultSet rsHead = stHead.executeQuery()) {
 			while (rsHead.next()) {
 				String number = rsHead.getString(1);
 				Invoice invoice = new Invoice(
 						number,
-						new LocalDate(rsHead.getDate(2)),
+						rsHead.getDate(2).toLocalDate(),
 						rsHead.getBigDecimal(3),
-						rsHead.getObject(4) == null ? null : new DateTime(rsHead.getTimestamp(4)),
+						rsHead.getObject(4) == null ? null : rsHead.getTimestamp(4).toLocalDateTime(),
 						rsHead.getBoolean(5),
 						rsHead.getLong(6),
 						rsHead.getBigDecimal(7),
 						rsHead.getString(8),
-						new DateTime(rsHead.getTimestamp(9)),
-						new DateTime(rsHead.getTimestamp(10)));
+						rsHead.getTimestamp(9).toLocalDateTime(),
+						rsHead.getTimestamp(10).toLocalDateTime());
 				map.put(number, invoice);
 				order.put(number, order.size());
 			}
@@ -188,15 +188,15 @@ public class PostgresJdbcStandardBench implements IBench<Invoice> {
 				 PreparedStatement child = connection.prepareStatement("INSERT INTO \"StandardRelations\".\"Item\"(\"Invoicenumber\", \"Index\", product, cost, quantity, \"taxGroup\", discount) VALUES(?, ?, ?, ?, ?, ?, ?)")) {
 				for (Invoice it : values) {
 					head.setString(1, it.number);
-					head.setDate(2, new Date(it.dueDate.toDate().getTime()));
+					head.setDate(2, Date.valueOf(it.dueDate));
 					head.setBigDecimal(3, it.total);
-					head.setTimestamp(4, it.paid != null ? new Timestamp(it.paid.toDate().getTime()) : null);
+					head.setTimestamp(4, it.paid != null ? Timestamp.valueOf(it.paid) : null);
 					head.setBoolean(5, it.canceled);
 					head.setLong(6, it.version);
 					head.setBigDecimal(7, it.tax);
 					head.setString(8, it.reference);
-					head.setTimestamp(9, new Timestamp(it.createdAt.toDate().getTime()));
-					head.setTimestamp(10, new Timestamp(it.modifiedAt.toDate().getTime()));
+					head.setTimestamp(9, Timestamp.valueOf(it.createdAt));
+					head.setTimestamp(10, Timestamp.valueOf(it.modifiedAt));
 					head.addBatch();
 					for (int i = 0; i < it.items.size(); i++) {
 						child.setString(1, it.number);
@@ -236,15 +236,15 @@ public class PostgresJdbcStandardBench implements IBench<Invoice> {
 					int max = rs.getInt(1);
 					rs.close();
 					head.setString(1, inv.number);
-					head.setDate(2, new Date(inv.dueDate.toDate().getTime()));
+					head.setDate(2, Date.valueOf(inv.dueDate));
 					head.setBigDecimal(3, inv.total);
-					head.setTimestamp(4, inv.paid != null ? new Timestamp(inv.paid.toDate().getTime()) : null);
+					head.setTimestamp(4, inv.paid != null ? Timestamp.valueOf(inv.paid) : null);
 					head.setBoolean(5, inv.canceled);
 					head.setLong(6, inv.version);
 					head.setBigDecimal(7, inv.tax);
 					head.setString(8, inv.reference);
-					inv.modifiedAt = DateTime.now();
-					head.setTimestamp(9, new Timestamp(inv.modifiedAt.toDate().getTime()));
+					inv.modifiedAt = LocalDateTime.now();
+					head.setTimestamp(9, Timestamp.valueOf(inv.modifiedAt));
 					head.setString(10, inv.getURI());
 					head.addBatch();
 					int min = Math.min(max, inv.items.size());
@@ -299,8 +299,13 @@ public class PostgresJdbcStandardBench implements IBench<Invoice> {
 	}
 
 	@Override
+	public Stream<Invoice> stream() {
+		return null;
+	}
+
+	@Override
 	public Report<Invoice> report(int i) {
-		Report<Invoice> result = new Report<Invoice>();
+		Report<Invoice> result = new Report<>();
 		String id = Integer.toString(i);
 		String[] ids = new String[]{Integer.toString(i), Integer.toString(i + 2), Integer.toString(i + 5), Integer.toString(i + 7)};
 		int start = i;

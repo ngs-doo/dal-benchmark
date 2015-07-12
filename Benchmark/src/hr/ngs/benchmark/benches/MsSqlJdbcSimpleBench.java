@@ -1,17 +1,18 @@
 package hr.ngs.benchmark.benches;
 
 import hr.ngs.benchmark.Factories;
-import hr.ngs.benchmark.IBench;
+import hr.ngs.benchmark.Bench;
 import hr.ngs.benchmark.Report;
 import hr.ngs.benchmark.model.Post;
-import org.joda.time.LocalDate;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
-public class MsSqlJdbcSimpleBench implements IBench<Post> {
+public class MsSqlJdbcSimpleBench implements Bench<Post> {
 	private final Connection connection;
 	private final LocalDate today;
 
@@ -49,7 +50,7 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 			try (PreparedStatement statement = connection.prepareStatement("SELECT id, title, created FROM Post")) {
 				final ResultSet rs = statement.executeQuery();
 				while (rs.next()) {
-					result.add(new Post(UUID.fromString(rs.getString(1)), rs.getString(2), LocalDate.fromDateFields(rs.getDate(3))));
+					result.add(new Post(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getDate(3).toLocalDate()));
 				}
 				rs.close();
 			}
@@ -64,11 +65,11 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 		try {
 			final List<Post> result = new ArrayList<Post>();
 			try (PreparedStatement statement = connection.prepareStatement("SELECT id, title, created FROM Post p WHERE p.created >= ? AND p.created <= ?")) {
-				statement.setDate(1, new Date(today.plusDays(i).toDate().getTime()));
-				statement.setDate(2, new Date(today.plusDays(i + 10).toDate().getTime()));
+				statement.setDate(1, Date.valueOf(today.plusDays(i)));
+				statement.setDate(2, Date.valueOf(today.plusDays(i + 10)));
 				final ResultSet rs = statement.executeQuery();
 				while (rs.next()) {
-					result.add(new Post(UUID.fromString(rs.getString(1)), rs.getString(2), LocalDate.fromDateFields(rs.getDate(3))));
+					result.add(new Post(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getDate(3).toLocalDate()));
 				}
 				rs.close();
 			}
@@ -86,7 +87,7 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 				statement.setString(1, uri);
 				rs = statement.executeQuery();
 				if (rs.next()) {
-					return new Post(id, rs.getString(1), LocalDate.fromDateFields(rs.getDate(2)));
+					return new Post(id, rs.getString(1), rs.getDate(2).toLocalDate());
 				}
 			} finally {
 				if (rs != null) rs.close();
@@ -100,7 +101,7 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 	private static Post executeSingle(PreparedStatement statement) throws SQLException {
 		try (ResultSet rs = statement.executeQuery()) {
 			if (rs.next()) {
-				return new Post(UUID.fromString(rs.getString(1)), rs.getString(2), LocalDate.fromDateFields(rs.getDate(3)));
+				return new Post(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getDate(3).toLocalDate());
 			}
 			return null;
 		}
@@ -109,7 +110,7 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 	private static void executeCollection(PreparedStatement statement, List<Post> result) throws SQLException {
 		try (ResultSet rs = statement.executeQuery()) {
 			while (rs.next()) {
-				result.add(new Post(UUID.fromString(rs.getString(1)), rs.getString(2), LocalDate.fromDateFields(rs.getDate(3))));
+				result.add(new Post(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getDate(3).toLocalDate()));
 			}
 		}
 	}
@@ -141,9 +142,9 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 			connection.setAutoCommit(false);
 			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO Post(id, title, created) VALUES(?, ?, ?)")) {
 				for (Post it : values) {
-					statement.setString(1, it.id.toString());
-					statement.setString(2, it.title);
-					statement.setDate(3, new Date(it.created.toDate().getTime()));
+					statement.setString(1, it.getId().toString());
+					statement.setString(2, it.getTitle());
+					statement.setDate(3, Date.valueOf(it.getCreated()));
 					statement.addBatch();
 				}
 				statement.executeBatch();
@@ -161,9 +162,9 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 			connection.setAutoCommit(false);
 			try (PreparedStatement statement = connection.prepareStatement("UPDATE Post SET id = ?, title = ?, created = ? WHERE id = ?")) {
 				for (Post it : values) {
-					statement.setString(1, it.id.toString());
-					statement.setString(2, it.title);
-					statement.setDate(3, new Date(it.created.toDate().getTime()));
+					statement.setString(1, it.getId().toString());
+					statement.setString(2, it.getTitle());
+					statement.setDate(3, Date.valueOf(it.getCreated()));
 					statement.setString(4, it.getURI());
 					statement.addBatch();
 				}
@@ -180,9 +181,9 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 	public void insert(Post value) {
 		try {
 			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO Post(id, title, created) VALUES(?, ?, ?)")) {
-				statement.setString(1, value.id.toString());
-				statement.setString(2, value.title);
-				statement.setDate(3, new Date(value.created.toDate().getTime()));
+				statement.setString(1, value.getId().toString());
+				statement.setString(2, value.getTitle());
+				statement.setDate(3, Date.valueOf(value.getCreated()));
 				statement.executeUpdate();
 			}
 		} catch (SQLException ex) {
@@ -194,9 +195,9 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 	public void update(Post value) {
 		try {
 			try (PreparedStatement statement = connection.prepareStatement("UPDATE Post SET id = ?, title = ?, created = ? WHERE id = ?")) {
-				statement.setString(1, value.id.toString());
-				statement.setString(2, value.title);
-				statement.setDate(3, new Date(value.created.toDate().getTime()));
+				statement.setString(1, value.getId().toString());
+				statement.setString(2, value.getTitle());
+				statement.setDate(3, Date.valueOf(value.getCreated()));
 				statement.setString(4, value.getURI());
 				statement.executeUpdate();
 			}
@@ -206,12 +207,17 @@ public class MsSqlJdbcSimpleBench implements IBench<Post> {
 	}
 
 	@Override
+	public Stream<Post> stream() {
+		return null;
+	}
+
+	@Override
 	public Report<Post> report(int i) {
 		Report<Post> result = new Report<Post>();
 		UUID id = Factories.GetUUID(i);
 		UUID[] ids = new UUID[]{Factories.GetUUID(i), Factories.GetUUID(i + 2), Factories.GetUUID(i + 5), Factories.GetUUID(i + 7)};
-		Date start = new Date(today.plusDays(i).toDate().getTime());
-		Date end = new Date(today.plusDays(i + 6).toDate().getTime());
+		Date start = Date.valueOf(today.plusDays(i));
+		Date end = Date.valueOf(today.plusDays(i + 6));
 		try {
 			try (PreparedStatement statement = connection.prepareStatement("SELECT id, title, created FROM Post WHERE id = ?")) {
 				statement.setString(1, id.toString());

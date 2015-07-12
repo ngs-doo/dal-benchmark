@@ -1,13 +1,14 @@
 package hr.ngs.benchmark;
 
 import java.util.List;
+import java.util.stream.Stream;
 
-public interface IBench<T extends IAggregateRoot> {
+public interface Bench<T extends AggregateRoot> {
 	void clean();
 	void analyze();
 	List<T> searchAll();
 	List<T> searchSubset(int i);
-	//IQueryable<T> query();
+	Stream<T> stream();
 	T findSingle(String id);
 	List<T> findMany(String[] ids);
 	void insert(Iterable<T> values);

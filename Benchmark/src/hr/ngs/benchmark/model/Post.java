@@ -1,14 +1,14 @@
 package hr.ngs.benchmark.model;
 
-import hr.ngs.benchmark.IAggregateRoot;
-import org.joda.time.LocalDate;
+import hr.ngs.benchmark.AggregateRoot;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
-public class Post implements IAggregateRoot {
-	public UUID id;
-	public String title;
-	public LocalDate created;
+public class Post implements AggregateRoot {
+	private UUID id;
+	private String title;
+	private LocalDate created;
 	private String URI;
 
 	public Post() {
@@ -22,6 +22,15 @@ public class Post implements IAggregateRoot {
 		this.title = title;
 		this.created = created;
 	}
+
+	public UUID getId() { return id; }
+	public void setId(UUID value) { id = value; }
+
+	public String getTitle() { return title; }
+	public void setTitle(String value) { title = value; }
+
+	public LocalDate getCreated() { return created; }
+	public void setCreated(LocalDate value) { created = value; }
 
 	@Override
 	public String getURI() {

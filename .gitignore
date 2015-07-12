@@ -29,3 +29,6 @@ Thumbs.db
 obj/
 [Rr]elease*/
 _ReSharper*/
+.idea
+*.iml
+Benchmark/out/

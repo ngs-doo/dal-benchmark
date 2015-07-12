@@ -1,0 +1,144 @@
+package hr.ngs.benchmark.benches;
+
+import hr.ngs.benchmark.Bench;
+import hr.ngs.benchmark.Factories;
+import hr.ngs.benchmark.Report;
+import hr.ngs.benchmark.model.Post;
+import org.hibernate.*;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
+
+import java.sql.*;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.stream.Stream;
+
+public class HibernateSimpleBench implements Bench<Post> {
+	private final LocalDate today;
+	private final SessionFactory sessionFactory;
+	private final StatelessSession session;
+
+	public HibernateSimpleBench(String config) throws SQLException {
+		this.today = Factories.TODAY;
+		java.util.logging.Logger.getLogger("org.hibernate").setLevel(Level.OFF);
+		Configuration configuration = new Configuration();
+		configuration.configure(config);
+		configuration.addResource("Post.hbm.xml");
+		StandardServiceRegistryBuilder ssrb = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
+		this.sessionFactory = configuration.buildSessionFactory(ssrb.build());
+		this.session = sessionFactory.openStatelessSession();
+	}
+
+	@Override
+	public void clean() {
+		session.createSQLQuery("DELETE FROM \"Simple\".\"Post\"").executeUpdate();
+	}
+
+	@Override
+	public void analyze() {
+		session.createSQLQuery("ANALYZE").executeUpdate();
+	}
+
+	@Override
+	public List<Post> searchAll() {
+		return session.createCriteria(Post.class).list();
+	}
+
+	@Override
+	public List<Post> searchSubset(int i) {
+		return session.createCriteria(Post.class)
+				.add(Restrictions.ge("created", today.plusDays(i)))
+				.add(Restrictions.le("created", today.plusDays(i + 10)))
+				.list();
+	}
+
+	public Post findSingle(String uri) {
+		return (Post) session.get(Post.class, UUID.fromString(uri));
+	}
+
+	@Override
+	public List<Post> findMany(String[] ids) {
+		UUID[] pks = new UUID[ids.length];
+		for (int i = 0; i < ids.length; i++) {
+			pks[i] = UUID.fromString(ids[i]);
+		}
+		return session.createCriteria(Post.class)
+				.add(Restrictions.in("id", pks))
+				.list();
+	}
+
+	@Override
+	public void insert(Iterable<Post> values) {
+		Transaction t = session.beginTransaction();
+		for (Post p : values) {
+			session.insert(p);
+		}
+		t.commit();
+	}
+
+	@Override
+	public void update(Iterable<Post> values) {
+		Transaction t = session.beginTransaction();
+		for (Post p : values) {
+			session.update(p);
+		}
+		t.commit();
+	}
+
+	@Override
+	public void insert(Post value) {
+		session.insert(value);
+	}
+
+	@Override
+	public void update(Post value) {
+		session.update(value);
+	}
+
+	@Override
+	public Stream<Post> stream() {
+		return null;
+	}
+
+	@Override
+	public Report<Post> report(int i) {
+		Report<Post> result = new Report<>();
+		UUID id = Factories.GetUUID(i);
+		UUID[] ids = new UUID[]{Factories.GetUUID(i), Factories.GetUUID(i + 2), Factories.GetUUID(i + 5), Factories.GetUUID(i + 7)};
+		LocalDate start = today.plusDays(i);
+		LocalDate end = today.plusDays(i + 6);
+		result.findOne = (Post) session.createCriteria(Post.class)
+				.add(Restrictions.eq("id", id))
+				.list().get(0);
+		result.findMany = session.createCriteria(Post.class)
+				.add(Restrictions.in("id", ids))
+				.list();
+		result.findFirst = (Post) session.createCriteria(Post.class)
+				.add(Restrictions.ge("created", start))
+				.addOrder(Order.asc("created"))
+				.setMaxResults(1)
+				.list().get(0);
+		result.findLast = (Post) session.createCriteria(Post.class)
+				.add(Restrictions.le("created", end))
+				.addOrder(Order.desc("created"))
+				.setMaxResults(1)
+				.list().get(0);
+		result.topFive = session.createCriteria(Post.class)
+				.add(Restrictions.ge("created", start))
+				.add(Restrictions.le("created", end))
+				.addOrder(Order.asc("created"))
+				.setMaxResults(5)
+				.list();
+		result.lastTen = session.createCriteria(Post.class)
+				.add(Restrictions.ge("created", start))
+				.add(Restrictions.le("created", end))
+				.addOrder(Order.desc("created"))
+				.setMaxResults(10)
+				.list();
+		return result;
+	}
+}

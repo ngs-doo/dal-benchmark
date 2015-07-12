@@ -1,5 +1,6 @@
 package hr.ngs.benchmark;
 
+import hr.ngs.benchmark.benches.HibernateSimpleBench;
 import hr.ngs.benchmark.benches.MsSqlJdbcSimpleBench;
 import hr.ngs.benchmark.benches.PostgresJdbcSimpleBench;
 import hr.ngs.benchmark.benches.PostgresJdbcStandardBench;
@@ -12,7 +13,7 @@ import java.util.*;
 public class Main {
 
 	enum BenchTarget {
-		Jdbc_Postgres, Jdbc_Psql, Jdbc_MsSql
+		Jdbc_Postgres, Jdbc_Psql, Jdbc_MsSql, Hibernate_Postgres
 	}
 
 	enum BenchType {
@@ -29,10 +30,10 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-
 		//args = new String[]{"Jdbc_Postgres", "Standard_Relational", "1000"};
 		//args = new String[]{"Jdbc_Postgres", "Simple", "10000"};
 		//args = new String[]{"Jdbc_MsSql", "Simple", "10000"};
+		//args = new String[]{"Hibernate_Postgres", "Simple", "10000"};
 		if (args.length != 3) {
 			System.out.printf(
 					"Expected usage: java -jar json-benchamrk.jar (%s) (%s) n",
@@ -80,13 +81,25 @@ public class Main {
 			}
 			switch (type) {
 				case Simple:
-					IBench<Post> simpleBench = target == BenchTarget.Jdbc_MsSql
-							? new MsSqlJdbcSimpleBench(connectionString)
-							: new PostgresJdbcSimpleBench(connectionString);
+					Bench<Post> simpleBench;
+					switch (target) {
+						case Jdbc_Postgres:
+						case Jdbc_Psql:
+							simpleBench = new PostgresJdbcSimpleBench(connectionString);
+							break;
+						case Jdbc_MsSql:
+							simpleBench = new MsSqlJdbcSimpleBench(connectionString);
+							break;
+						case Hibernate_Postgres:
+							simpleBench = new HibernateSimpleBench("hibernate_postgres.cfg.xml");
+							break;
+						default:
+							throw new IllegalArgumentException("Unknown combination");
+					}
 					runBenchmark(Post.class, simpleBench, Factories.newSimple(), Factories.updateSimple(), size);
 					break;
 				default:
-					IBench<Invoice> stdBench = new PostgresJdbcStandardBench(connectionString);
+					Bench<Invoice> stdBench = new PostgresJdbcStandardBench(connectionString);
 					runBenchmark(Invoice.class, stdBench, Factories.newStandard(), Factories.updateStandard(), size);
 					break;
 			}
@@ -102,13 +115,13 @@ public class Main {
 		return new Date().getTime() - from.getTime();
 	}
 
-	private static <T extends IAggregateRoot> void runBenchmark(
+	private static <T extends AggregateRoot> void runBenchmark(
 			Class<T> manifest,
-			IBench<T> bench,
+			Bench<T> bench,
 			ModifyObject<T> fillNew,
 			ModifyObject<T> changeExisting,
 			int data) throws IllegalAccessException, InstantiationException, InvalidObjectException {
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 50; i++) {
 			bench.clean();
 			T newObject = manifest.newInstance();
 			fillNew.run(newObject, i);
@@ -144,7 +157,7 @@ public class Main {
 			}
 		}
 		bench.clean();
-		List<T> items = new ArrayList<T>(data);
+		List<T> items = new ArrayList<>(data);
 		for (int i = 0; i < data; i++) {
 			T t = manifest.newInstance();
 			fillNew.run(t, i);
