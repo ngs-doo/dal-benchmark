@@ -181,7 +181,7 @@ public class PostgresJdbcStandardBench implements Bench<Invoice> {
 	}
 
 	@Override
-	public void insert(Iterable<Invoice> values) {
+	public void insert(Collection<Invoice> values) {
 		try {
 			connection.setAutoCommit(false);
 			try (PreparedStatement head = connection.prepareStatement("INSERT INTO \"StandardRelations\".\"Invoice\"(number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\") VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -221,7 +221,7 @@ public class PostgresJdbcStandardBench implements Bench<Invoice> {
 	}
 
 	@Override
-	public void update(Iterable<Invoice> values) {
+	public void update(Collection<Invoice> values) {
 		try {
 			connection.setAutoCommit(false);
 			try (PreparedStatement info = connection.prepareStatement("SELECT COALESCE(MAX(\"Index\"), -1) FROM \"StandardRelations\".\"Item\" WHERE \"Invoicenumber\" = ?");

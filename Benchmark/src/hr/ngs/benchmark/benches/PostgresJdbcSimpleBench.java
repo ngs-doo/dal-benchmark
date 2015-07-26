@@ -8,6 +8,7 @@ import hr.ngs.benchmark.model.Post;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -134,7 +135,7 @@ public class PostgresJdbcSimpleBench implements Bench<Post> {
 	}
 
 	@Override
-	public void insert(Iterable<Post> values) {
+	public void insert(Collection<Post> values) {
 		try {
 			connection.setAutoCommit(false);
 			try (PreparedStatement statement = connection.prepareStatement("INSERT INTO \"Simple\".\"Post\"(id, title, created) VALUES(?, ?, ?)")) {
@@ -154,7 +155,7 @@ public class PostgresJdbcSimpleBench implements Bench<Post> {
 	}
 
 	@Override
-	public void update(Iterable<Post> values) {
+	public void update(Collection<Post> values) {
 		try {
 			connection.setAutoCommit(false);
 			try (PreparedStatement statement = connection.prepareStatement("UPDATE \"Simple\".\"Post\" SET id = ?, title = ?, created = ? WHERE id = ?")) {

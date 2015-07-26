@@ -22,7 +22,7 @@ namespace Benchmark
 			//args = new[] { "Npgsql", "Standard_Relations", "1000" };
 			//args = new[] { "Revenj_Postgres", "Standard_Relations", "1000" };
 			//args = new[] { "MsSql_AdoNet", "Standard_Relations", "1000" };
-			//args = new[] { "Revenj_Postgres", "Simple", "10000" };
+			//args = new[] { "EF_Postgres", "Simple", "10000" };
 			//args = new[] { "Oracle_OdpNet", "Simple", "10000" };
 			//args = new[] { "Oracle_OdpNet", "Standard_Relations", "1000" };
 			//args = new[] { "Revenj_Postgres", "Standard_Objects", "1000" };
@@ -101,6 +101,26 @@ namespace Benchmark
 			}
 		}
 
+		class CaptureGC
+		{
+			public readonly long Gen0;
+			public readonly long Gen1;
+			public readonly long Gen2;
+			public CaptureGC()
+			{
+				Gen0 = GC.CollectionCount(0);
+				Gen1 = GC.CollectionCount(1);
+				Gen2 = GC.CollectionCount(2);
+			}
+		}
+
+		private static CaptureGC CountGC(CaptureGC last)
+		{
+			var next = new CaptureGC();
+			Console.WriteLine("GC: " + (next.Gen0 - last.Gen0) + " " + (next.Gen1 - last.Gen1) + " " + (next.Gen2 - last.Gen2));
+			return next;
+		}
+
 		public static void RunBenchmark<T>(
 			IBench<T> bench,
 			Action<T, int> fillNew,
@@ -109,6 +129,7 @@ namespace Benchmark
 			int data)
 			where T : IAggregateRoot, new()// IEquatable<T>, new()
 		{
+			var gc = new CaptureGC();
 			for (int i = 0; i < 50; i++)
 			{
 				bench.Clean();
@@ -160,6 +181,7 @@ namespace Benchmark
 						throw new InvalidProgramException("Incorrect results when comparing aggregates from report");
 				}
 			}
+			gc = CountGC(gc);
 			bench.Clean();
 			var items = new List<T>(data);
 			for (int i = 0; i < data; i++)
@@ -169,22 +191,26 @@ namespace Benchmark
 				items.Add(t);
 			}
 			var lookupUris = new string[Math.Min(10, Math.Min(data / 2, data / 3 + 10) - data / 3)];
+			var uris = new string[data / 2];
 			var sw = Stopwatch.StartNew();
 			bench.Insert(items);
 			Console.WriteLine("bulk_insert = " + sw.ElapsedMilliseconds);
-			for (int i = data / 3; i < data / 3 + lookupUris.Length; i++)
-				lookupUris[i - data / 3] = items[i].URI;
+			gc = CountGC(gc);
 			for (int i = 0; i < items.Count; i++)
 				changeExisting(items[i], i);
 			bench.Analyze();
 			sw.Restart();
 			bench.Update(items);
 			Console.WriteLine("bulk_update = " + sw.ElapsedMilliseconds);
+			gc = CountGC(gc);
 			bench.Clean();
 			sw.Restart();
 			for (int i = 0; i < items.Count / 2; i++)
 				bench.Insert(items[i]);
 			Console.WriteLine("loop_insert_half = " + sw.ElapsedMilliseconds);
+			for (int i = 0; i < items.Count / 2; i++)
+				uris[i] = items[i].URI;
+			gc = CountGC(gc);
 			for (int i = 0; i < items.Count; i++)
 				changeExisting(items[i], i);
 			bench.Analyze();
@@ -192,6 +218,7 @@ namespace Benchmark
 			for (int i = 0; i < items.Count / 2; i++)
 				bench.Update(items[i]);
 			Console.WriteLine("loop_update_half = " + sw.ElapsedMilliseconds);
+			gc = CountGC(gc);
 			bench.Analyze();
 			sw.Restart();
 			for (int i = 0; i < 100; i++)
@@ -201,6 +228,7 @@ namespace Benchmark
 					throw new InvalidProgramException("Expecting results");
 			}
 			Console.WriteLine("search_all = " + sw.ElapsedMilliseconds);
+			gc = CountGC(gc);
 			sw.Restart();
 			for (int i = 0; i < 3000; i++)
 			{
@@ -209,6 +237,7 @@ namespace Benchmark
 					throw new InvalidProgramException("Expecting results");
 			}
 			Console.WriteLine("search_subset = " + sw.ElapsedMilliseconds);
+			gc = CountGC(gc);
 			if (createFilter == null)
 			{
 				Console.WriteLine("query_all = -1");
@@ -224,6 +253,7 @@ namespace Benchmark
 						throw new InvalidProgramException("Expecting results");
 				}
 				Console.WriteLine("query_all = " + sw.ElapsedMilliseconds);
+				gc = CountGC(gc);
 				sw.Restart();
 				for (int i = 0; i < 1000; i++)
 				{
@@ -232,23 +262,28 @@ namespace Benchmark
 						throw new InvalidProgramException("Expecting results");
 				}
 				Console.WriteLine("query_filter = " + sw.ElapsedMilliseconds);
+				gc = CountGC(gc);
 			}
 			sw.Restart();
 			for (int i = 0; i < 2000; i++)
 			{
+				for (int j = 0; j < lookupUris.Length; j++)
+					lookupUris[j] = uris[(i + j + data / 3) % uris.Length];
 				var cnt = bench.FindMany(lookupUris).Count();
 				if (cnt == 0)
 					throw new InvalidProgramException("Expecting results");
 			}
 			Console.WriteLine("find_many = " + sw.ElapsedMilliseconds);
+			gc = CountGC(gc);
 			sw.Restart();
 			for (int i = 0; i < 5000; i++)
 			{
-				var res = bench.FindSingle(lookupUris[i % lookupUris.Length]);
+				var res = bench.FindSingle(uris[i % uris.Length]);
 				if (res == null)
 					throw new InvalidProgramException("Expecting results");
 			}
 			Console.WriteLine("find_one = " + sw.ElapsedMilliseconds);
+			gc = CountGC(gc);
 			var r = bench.Report(0);
 			if (r == null)
 			{
@@ -266,6 +301,7 @@ namespace Benchmark
 				}
 				Console.WriteLine("report = " + sw.ElapsedMilliseconds);
 			}
+			CountGC(gc);
 		}
 	}
 }

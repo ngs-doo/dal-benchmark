@@ -91,7 +91,7 @@ public class Main {
 							simpleBench = new MsSqlJdbcSimpleBench(connectionString);
 							break;
 						case Hibernate_Postgres:
-							simpleBench = new HibernateSimpleBench("hibernate_postgres.cfg.xml");
+							simpleBench = new HibernateSimpleBench("hibernate_postgres.cfg.xml", connectionString);
 							break;
 						default:
 							throw new IllegalArgumentException("Unknown combination");
@@ -164,11 +164,10 @@ public class Main {
 			items.add(t);
 		}
 		String[] lookupUris = new String[Math.min(10, Math.min(data / 2, data / 3 + 10) - data / 3)];
+		String[] uris = new String[data / 2];
 		Date dt = new Date();
 		bench.insert(items);
 		System.out.println("bulk_insert = " + elapsedMilliseconds(dt));
-		for (int i = data / 3; i < data / 3 + lookupUris.length; i++)
-			lookupUris[i - data / 3] = items.get(i).getURI();
 		for (int i = 0; i < items.size(); i++)
 			changeExisting.run(items.get(i), i);
 		bench.analyze();
@@ -180,6 +179,8 @@ public class Main {
 		for (int i = 0; i < items.size() / 2; i++)
 			bench.insert(items.get(i));
 		System.out.println("loop_insert_half = " + elapsedMilliseconds(dt));
+		for (int i = 0; i < items.size() / 2; i++)
+			uris[i] = items.get(i).getURI();
 		for (int i = 0; i < items.size(); i++)
 			changeExisting.run(items.get(i), i);
 		bench.analyze();
@@ -206,6 +207,8 @@ public class Main {
 		System.out.println("query_filter = -1");
 		dt = new Date();
 		for (int i = 0; i < 2000; i++) {
+			for (int j = 0; j < lookupUris.length; j++)
+				lookupUris[j] = uris[(i + j + data / 3) % uris.length];
 			int cnt = bench.findMany(lookupUris).size();
 			if (cnt == 0)
 				throw new InvalidObjectException("Expecting results");
@@ -213,7 +216,7 @@ public class Main {
 		System.out.println("find_many = " + elapsedMilliseconds(dt));
 		dt = new Date();
 		for (int i = 0; i < 5000; i++) {
-			T res = bench.findSingle(lookupUris[i % lookupUris.length]);
+			T res = bench.findSingle(uris[i % uris.length]);
 			if (res == null)
 				throw new InvalidObjectException("Expecting results");
 		}

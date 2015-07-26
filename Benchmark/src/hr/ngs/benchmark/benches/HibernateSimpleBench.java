@@ -12,6 +12,7 @@ import org.hibernate.criterion.Restrictions;
 
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -19,28 +20,39 @@ import java.util.stream.Stream;
 
 public class HibernateSimpleBench implements Bench<Post> {
 	private final LocalDate today;
-	private final SessionFactory sessionFactory;
 	private final StatelessSession session;
+	private final Connection connection;
 
-	public HibernateSimpleBench(String config) throws SQLException {
+	public HibernateSimpleBench(String config, String connectionString) throws SQLException {
 		this.today = Factories.TODAY;
 		java.util.logging.Logger.getLogger("org.hibernate").setLevel(Level.OFF);
 		Configuration configuration = new Configuration();
 		configuration.configure(config);
 		configuration.addResource("Post.hbm.xml");
 		StandardServiceRegistryBuilder ssrb = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties());
-		this.sessionFactory = configuration.buildSessionFactory(ssrb.build());
-		this.session = sessionFactory.openStatelessSession();
+		SessionFactory sessionFactory = configuration.buildSessionFactory(ssrb.build());
+		this.connection = DriverManager.getConnection(connectionString);
+		this.session = sessionFactory.openStatelessSession(connection);
 	}
 
 	@Override
 	public void clean() {
-		session.createSQLQuery("DELETE FROM \"Simple\".\"Post\"").executeUpdate();
+		try {
+			connection.setAutoCommit(true);
+			session.createSQLQuery("DELETE FROM \"Simple\".\"Post\"").executeUpdate();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
 	public void analyze() {
-		session.createSQLQuery("ANALYZE").executeUpdate();
+		try {
+			connection.setAutoCommit(true);
+			session.createSQLQuery("ANALYZE").executeUpdate();
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -72,31 +84,49 @@ public class HibernateSimpleBench implements Bench<Post> {
 	}
 
 	@Override
-	public void insert(Iterable<Post> values) {
-		Transaction t = session.beginTransaction();
-		for (Post p : values) {
-			session.insert(p);
+	public void insert(Collection<Post> values) {
+		try {
+			connection.setAutoCommit(false);
+			for (Post p : values) {
+				session.insert(p);
+			}
+			connection.commit();
+		} catch (SQLException ex) {
+			throw new RuntimeException(ex);
 		}
-		t.commit();
 	}
 
 	@Override
-	public void update(Iterable<Post> values) {
-		Transaction t = session.beginTransaction();
-		for (Post p : values) {
-			session.update(p);
+	public void update(Collection<Post> values) {
+		try {
+			connection.setAutoCommit(false);
+			for (Post p : values) {
+				session.update(p);
+			}
+			connection.commit();
+		} catch (SQLException ex) {
+			throw new RuntimeException(ex);
 		}
-		t.commit();
 	}
 
 	@Override
 	public void insert(Post value) {
-		session.insert(value);
+		try {
+			connection.setAutoCommit(true);
+			session.insert(value);
+		} catch (SQLException ex) {
+			throw new RuntimeException(ex);
+		}
 	}
 
 	@Override
 	public void update(Post value) {
-		session.update(value);
+		try {
+			connection.setAutoCommit(true);
+			session.update(value);
+		} catch (SQLException ex) {
+			throw new RuntimeException(ex);
+		}
 	}
 
 	@Override
