@@ -1,6 +1,6 @@
 package hr.ngs.benchmark.model;
 
-import hr.ngs.benchmark.AggregateRoot;
+import org.revenj.patterns.AggregateRoot;
 
 import java.time.LocalDate;
 import java.util.UUID;

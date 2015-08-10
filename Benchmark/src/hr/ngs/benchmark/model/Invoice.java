@@ -1,6 +1,6 @@
 package hr.ngs.benchmark.model;
 
-import hr.ngs.benchmark.AggregateRoot;
+import org.revenj.patterns.AggregateRoot;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

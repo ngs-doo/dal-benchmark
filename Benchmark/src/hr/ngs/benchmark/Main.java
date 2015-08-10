@@ -1,11 +1,9 @@
 package hr.ngs.benchmark;
 
-import hr.ngs.benchmark.benches.HibernateSimpleBench;
-import hr.ngs.benchmark.benches.MsSqlJdbcSimpleBench;
-import hr.ngs.benchmark.benches.PostgresJdbcSimpleBench;
-import hr.ngs.benchmark.benches.PostgresJdbcStandardBench;
-import hr.ngs.benchmark.model.Invoice;
-import hr.ngs.benchmark.model.Post;
+import hr.ngs.benchmark.benches.MsSqlJdbcBench;
+import hr.ngs.benchmark.benches.PostgresJdbcBench;
+import hr.ngs.benchmark.benches.RevenjBench;
+import org.revenj.patterns.AggregateRoot;
 
 import java.io.InvalidObjectException;
 import java.util.*;
@@ -13,11 +11,7 @@ import java.util.*;
 public class Main {
 
 	enum BenchTarget {
-		Jdbc_Postgres, Jdbc_Psql, Jdbc_MsSql, Hibernate_Postgres
-	}
-
-	enum BenchType {
-		Simple, Standard_Relational
+		Jdbc_Postgres, Jdbc_Psql, Jdbc_MsSql, Hibernate_Postgres, Revenj
 	}
 
 	static <T extends Enum> String enumTypes(T[] enums) {
@@ -33,7 +27,7 @@ public class Main {
 		//args = new String[]{"Jdbc_Postgres", "Standard_Relational", "1000"};
 		//args = new String[]{"Jdbc_Postgres", "Simple", "10000"};
 		//args = new String[]{"Jdbc_MsSql", "Simple", "10000"};
-		//args = new String[]{"Hibernate_Postgres", "Simple", "10000"};
+		//args = new String[]{"Revenj", "Simple", "10000"};
 		if (args.length != 3) {
 			System.out.printf(
 					"Expected usage: java -jar json-benchamrk.jar (%s) (%s) n",
@@ -65,43 +59,29 @@ public class Main {
 			System.out.println("Invalid count provided: " + args[2] + ". Expecting positive integer");
 			return;
 		}
-
+		Properties properties = new Properties();
+		properties.setProperty("mssql", "jdbc:sqlserver://localhost\\sqlexpress;databaseName=Benchmark;user=bench;password=6666");
+		properties.setProperty("psql", "jdbc:pgsql://localhost/Benchmark?user=postgres&password=6666");
+		properties.setProperty("postgres", "jdbc:postgresql://localhost:5432/Benchmark?user=postgres&password=6666");
 		try {
-			String connectionString;
 			switch (target) {
 				case Jdbc_MsSql:
-					connectionString = "jdbc:sqlserver://localhost\\sqlexpress;databaseName=Benchmark;user=bench;password=6666";
+					MsSqlJdbcBench.runBench(properties.getProperty("mssql"), type, size);
 					break;
 				case Jdbc_Psql:
-					connectionString = "jdbc:pgsql://localhost/Benchmark?user=postgres&password=6666";
+					PostgresJdbcBench.runBench(properties.getProperty("psql"), type, size);
+					break;
+				case Jdbc_Postgres:
+					PostgresJdbcBench.runBench(properties.getProperty("postgres"), type, size);
+					break;
+				case Hibernate_Postgres:
+					PostgresJdbcBench.runBench(properties.getProperty("postgres"), type, size);
+					break;
+				case Revenj:
+					RevenjBench.runBench(properties.getProperty("postgres"), type, size);
 					break;
 				default:
-					connectionString = "jdbc:postgresql://localhost/Benchmark?user=postgres&password=6666";
-					break;
-			}
-			switch (type) {
-				case Simple:
-					Bench<Post> simpleBench;
-					switch (target) {
-						case Jdbc_Postgres:
-						case Jdbc_Psql:
-							simpleBench = new PostgresJdbcSimpleBench(connectionString);
-							break;
-						case Jdbc_MsSql:
-							simpleBench = new MsSqlJdbcSimpleBench(connectionString);
-							break;
-						case Hibernate_Postgres:
-							simpleBench = new HibernateSimpleBench("hibernate_postgres.cfg.xml", connectionString);
-							break;
-						default:
-							throw new IllegalArgumentException("Unknown combination");
-					}
-					runBenchmark(Post.class, simpleBench, Factories.newSimple(), Factories.updateSimple(), size);
-					break;
-				default:
-					Bench<Invoice> stdBench = new PostgresJdbcStandardBench(connectionString);
-					runBenchmark(Invoice.class, stdBench, Factories.newStandard(), Factories.updateStandard(), size);
-					break;
+					throw new IllegalArgumentException("Unknown target");
 			}
 			System.exit(0);
 		} catch (Exception ex) {
@@ -115,12 +95,12 @@ public class Main {
 		return new Date().getTime() - from.getTime();
 	}
 
-	private static <T extends AggregateRoot> void runBenchmark(
+	public static <T extends AggregateRoot> void runBenchmark(
 			Class<T> manifest,
 			Bench<T> bench,
 			ModifyObject<T> fillNew,
 			ModifyObject<T> changeExisting,
-			int data) throws IllegalAccessException, InstantiationException, InvalidObjectException {
+			int data) throws Exception {
 		for (int i = 0; i < 50; i++) {
 			bench.clean();
 			T newObject = manifest.newInstance();
@@ -128,32 +108,40 @@ public class Main {
 			bench.insert(newObject);
 			bench.analyze();
 			List<T> tmp = bench.searchAll();
-			if (tmp.size() != 1)
+			if (tmp.size() != 1) {
 				throw new InvalidObjectException("Incorrect results during search all");
-			if (!newObject.equals(tmp.get(0)))
+			}
+			if (!newObject.equals(tmp.get(0))) {
 				throw new InvalidObjectException("Incorrect results when comparing aggregates from search");
+			}
 			List<T> subset = bench.searchSubset(i);
-			if (subset.size() != 1)
+			if (subset.size() != 1) {
 				throw new InvalidObjectException("Incorrect results during search subset, count=" + subset.size());
+			}
 			changeExisting.run(tmp.get(0), i);
 			bench.update(tmp);
 			changeExisting.run(tmp.get(0), i);
 			bench.update(tmp.get(0));
 			T fs = bench.findSingle(newObject.getURI());
-			if (!fs.equals(tmp.get(0)))
+			if (!fs.equals(tmp.get(0))) {
 				throw new InvalidObjectException("Incorrect results when comparing aggregates from find single");
+			}
 			List<T> fm = bench.findMany(new String[]{newObject.getURI()});
-			if (fm.size() != 1)
+			if (fm.size() != 1) {
 				throw new InvalidObjectException("Incorrect results during find many");
-			if (!fm.get(0).equals(tmp.get(0)))
+			}
+			if (!fm.get(0).equals(tmp.get(0))) {
 				throw new InvalidObjectException("Incorrect results when comparing aggregates from find many");
+			}
 			Report<T> rep = bench.report(i);
 			if (rep != null) {
-				if (rep.findMany.size() != 1 || rep.lastTen.size() != 1 || rep.topFive.size() != 1)
+				if (rep.findMany.size() != 1 || rep.lastTen.size() != 1 || rep.topFive.size() != 1) {
 					throw new InvalidObjectException("Incorrect results during report");
+				}
 				if (!rep.findOne.equals(tmp.get(0)) || !rep.findFirst.equals(tmp.get(0)) || !rep.findLast.equals(tmp.get(0))
-						|| !rep.findMany.get(0).equals(tmp.get(0)) || !rep.lastTen.get(0).equals(tmp.get(0)) || !rep.topFive.get(0).equals(tmp.get(0)))
+						|| !rep.findMany.get(0).equals(tmp.get(0)) || !rep.lastTen.get(0).equals(tmp.get(0)) || !rep.topFive.get(0).equals(tmp.get(0))) {
 					throw new InvalidObjectException("Incorrect results when comparing aggregates from report");
+				}
 			}
 		}
 		bench.clean();
@@ -168,21 +156,25 @@ public class Main {
 		Date dt = new Date();
 		bench.insert(items);
 		System.out.println("bulk_insert = " + elapsedMilliseconds(dt));
-		for (int i = 0; i < items.size(); i++)
+		for (int i = 0; i < items.size(); i++) {
 			changeExisting.run(items.get(i), i);
+		}
 		bench.analyze();
 		dt = new Date();
 		bench.update(items);
 		System.out.println("bulk_update = " + elapsedMilliseconds(dt));
 		bench.clean();
 		dt = new Date();
-		for (int i = 0; i < items.size() / 2; i++)
+		for (int i = 0; i < items.size() / 2; i++) {
 			bench.insert(items.get(i));
+		}
 		System.out.println("loop_insert_half = " + elapsedMilliseconds(dt));
-		for (int i = 0; i < items.size() / 2; i++)
+		for (int i = 0; i < items.size() / 2; i++) {
 			uris[i] = items.get(i).getURI();
-		for (int i = 0; i < items.size(); i++)
+		}
+		for (int i = 0; i < items.size(); i++) {
 			changeExisting.run(items.get(i), i);
+		}
 		bench.analyze();
 		dt = new Date();
 		for (int i = 0; i < items.size() / 2; i++)
@@ -192,33 +184,38 @@ public class Main {
 		dt = new Date();
 		for (int i = 0; i < 100; i++) {
 			int cnt = bench.searchAll().size();
-			if (cnt != items.size() / 2)
+			if (cnt != items.size() / 2) {
 				throw new InvalidObjectException("Expecting results");
+			}
 		}
 		System.out.println("search_all = " + elapsedMilliseconds(dt));
 		dt = new Date();
 		for (int i = 0; i < 3000; i++) {
 			int cnt = bench.searchSubset(i % items.size() / 2).size();
-			if (cnt == 0)
+			if (cnt == 0) {
 				throw new InvalidObjectException("Expecting results");
+			}
 		}
 		System.out.println("search_subset = " + elapsedMilliseconds(dt));
 		System.out.println("query_all = -1");
 		System.out.println("query_filter = -1");
 		dt = new Date();
 		for (int i = 0; i < 2000; i++) {
-			for (int j = 0; j < lookupUris.length; j++)
+			for (int j = 0; j < lookupUris.length; j++) {
 				lookupUris[j] = uris[(i + j + data / 3) % uris.length];
+			}
 			int cnt = bench.findMany(lookupUris).size();
-			if (cnt == 0)
+			if (cnt == 0) {
 				throw new InvalidObjectException("Expecting results");
+			}
 		}
 		System.out.println("find_many = " + elapsedMilliseconds(dt));
 		dt = new Date();
 		for (int i = 0; i < 5000; i++) {
 			T res = bench.findSingle(uris[i % uris.length]);
-			if (res == null)
+			if (res == null) {
 				throw new InvalidObjectException("Expecting results");
+			}
 		}
 		System.out.println("find_one = " + elapsedMilliseconds(dt));
 		Report<T> r = bench.report(0);
@@ -229,8 +226,9 @@ public class Main {
 			for (int i = 0; i < 1000; i++) {
 				Report<T> rr = bench.report(i % items.size() / 2);
 				if (rr.lastTen.size() == 0 || rr.topFive.size() == 0 || rr.findMany.size() == 0
-						|| rr.findFirst == null || rr.findLast == null || rr.findOne == null)
+						|| rr.findFirst == null || rr.findLast == null || rr.findOne == null) {
 					throw new InvalidObjectException("Expecting results");
+				}
 			}
 			System.out.println("report = " + elapsedMilliseconds(dt));
 		}

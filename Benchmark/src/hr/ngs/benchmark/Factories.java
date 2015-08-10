@@ -6,12 +6,14 @@ import hr.ngs.benchmark.model.Post;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public abstract class Factories {
 
 	public static final LocalDate TODAY = LocalDate.now();
 	public static final LocalDateTime NOW = LocalDateTime.now();
+	public static final OffsetDateTime NOW_OFFSET = OffsetDateTime.now();
 
 	public static UUID GetUUID(int i) {
 		return new UUID(i, 0);

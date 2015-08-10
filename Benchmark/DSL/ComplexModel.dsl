@@ -45,11 +45,11 @@ module ComplexObjects {
 		timestamp start;
 		timestamp end;
 		BankScrape findOne 'it => it.id == id';
-		BankScrape[] findMany 'it => ids.Contains(it.id)';
+		List<BankScrape> findMany 'it => ids.Contains(it.id)';
 		BankScrape findFirst 'it => it.createdAt >= start' order by createdAt asc;
 		BankScrape findLast 'it => it.createdAt <= end' order by createdAt desc;
-		BankScrape[] topFive 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt asc limit 5;
-		BankScrape[] lastTen 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt desc limit 10;
+		List<BankScrape> topFive 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt asc limit 5;
+		List<BankScrape> lastTen 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt desc limit 10;
 	}
 }
 
@@ -84,11 +84,11 @@ module ComplexRelations {
 		timestamp start;
 		timestamp end;
 		BankScrape findOne 'it => it.id == id';
-		BankScrape[] findMany 'it => ids.Contains(it.id)';
+		List<BankScrape> findMany 'it => ids.Contains(it.id)';
 		BankScrape findFirst 'it => it.createdAt >= start' order by createdAt asc;
 		BankScrape findLast 'it => it.createdAt <= end' order by createdAt desc;
-		BankScrape[] topFive 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt asc limit 5;
-		BankScrape[] lastTen 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt desc limit 10;
+		List<BankScrape> topFive 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt asc limit 5;
+		List<BankScrape> lastTen 'it => it.createdAt >= start && it.createdAt <= end' order by createdAt desc limit 10;
 	}
 }
 

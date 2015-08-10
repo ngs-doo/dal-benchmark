@@ -37,11 +37,11 @@ module StandardObjects {
 		long start;
 		long end;
 		Invoice findOne 'it => it.number == id';
-		Invoice[] findMany 'it => ids.Contains(it.number)';
+		List<Invoice> findMany 'it => ids.Contains(it.number)';
 		Invoice findFirst 'it => it.version >= start' order by createdAt asc;
 		Invoice findLast 'it => it.version <= end' order by createdAt desc;
-		Invoice[] topFive 'it => it.version >= start && it.version <= end' order by createdAt asc limit 5;
-		Invoice[] lastTen 'it => it.version >= start && it.version <= end' order by createdAt desc limit 10;
+		List<Invoice> topFive 'it => it.version >= start && it.version <= end' order by createdAt asc limit 5;
+		List<Invoice> lastTen 'it => it.version >= start && it.version <= end' order by createdAt desc limit 10;
 	}
 }
 module StandardRelations {
@@ -70,11 +70,11 @@ module StandardRelations {
 		long start;
 		long end;
 		Invoice findOne 'it => it.number == id';
-		Invoice[] findMany 'it => ids.Contains(it.number)';
+		List<Invoice> findMany 'it => ids.Contains(it.number)';
 		Invoice findFirst 'it => it.version >= start' order by createdAt asc;
 		Invoice findLast 'it => it.version <= end' order by createdAt desc;
-		Invoice[] topFive 'it => it.version >= start && it.version <= end' order by createdAt asc limit 5;
-		Invoice[] lastTen 'it => it.version >= start && it.version <= end' order by createdAt desc limit 10;
+		List<Invoice> topFive 'it => it.version >= start && it.version <= end' order by createdAt asc limit 5;
+		List<Invoice> lastTen 'it => it.version >= start && it.version <= end' order by createdAt desc limit 10;
 	}
 }
 

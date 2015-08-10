@@ -15,11 +15,11 @@
 		date start;
 		date end;
 		Post findOne 'it => it.id == id';
-		Post[] findMany 'it => ids.Contains(it.id)';
+		List<Post> findMany 'it => ids.Contains(it.id)';
 		Post findFirst 'it => it.created >= start' order by created asc;
 		Post findLast 'it => it.created <= end' order by created desc;
-		Post[] topFive 'it => it.created >= start && it.created <= end' order by created asc limit 5;
-		Post[] lastTen 'it => it.created >= start && it.created <= end' order by created desc limit 10;
+		List<Post> topFive 'it => it.created >= start && it.created <= end' order by created asc limit 5;
+		List<Post> lastTen 'it => it.created >= start && it.created <= end' order by created desc limit 10;
 	}
 }
 
