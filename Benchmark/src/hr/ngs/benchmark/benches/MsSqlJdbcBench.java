@@ -1,7 +1,6 @@
 package hr.ngs.benchmark.benches;
 
 import hr.ngs.benchmark.*;
-import hr.ngs.benchmark.model.Invoice;
 import hr.ngs.benchmark.model.Post;
 
 import java.sql.*;
@@ -10,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 public abstract class MsSqlJdbcBench {
 
@@ -220,7 +218,12 @@ public abstract class MsSqlJdbcBench {
 		}
 
 		@Override
-		public Stream<Post> stream() {
+		public List<Post> queryAll() {
+			return null;
+		}
+
+		@Override
+		public List<Post> querySubset(int i) {
 			return null;
 		}
 

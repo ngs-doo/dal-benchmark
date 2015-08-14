@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace GatherResults
 {
@@ -10,6 +10,8 @@ namespace GatherResults
 	{
 		private static string BenchPath = "../../../app";
 		private static string JavaPath = Environment.GetEnvironmentVariable("JAVA_HOME");
+
+		private static string TargetOnly;
 
 		static void Main(string[] args)
 		{
@@ -40,6 +42,7 @@ namespace GatherResults
 				}
 				BenchPath = ".";
 			}
+			if (args.Length == 2) TargetOnly = args[1];
 			var java = Path.Combine(JavaPath ?? ".", "bin", "java");
 			var process =
 				Process.Start(
@@ -55,17 +58,25 @@ namespace GatherResults
 			var efPostgres = GetherDuration("EF_Postgres", true);
 			var sqlAdoNet = GetherDuration("MsSql_AdoNet", true);
 			var npgsql = GetherDuration("Npgsql", true);
-			var revenjPostgres = GetherDuration("Revenj_Postgres", true);
+			var revenjPostgresNet = GetherDuration("Revenj_Postgres", true);
 			var sqlOdpNet = GetherDuration("Oracle_OdpNet", true);
 			//var revenjOracle = GetherDuration("Revenj_Oracle", true);
+			var jdbcPostgres = GetherDuration("Jdbc_Postgres", false);
+			var jdbcMssql = GetherDuration("Jdbc_MsSql", false);
+			var hibernatePostgres = GetherDuration("Hibernate_Postgres", false);
+			var revenjPostgresJava = GetherDuration("Revenj", false);
 			File.Copy("template.xlsx", "results.xlsx", true);
 			var vm = new ViewModel[]
 			{
 				new ViewModel("MsSql ADO.NET", sqlAdoNet, Database.MsSql, ".NET", ORM.None, "ADO.NET"),
 				new ViewModel("Npgsql", npgsql, Database.Postgres, ".NET", ORM.None, "ADO.NET"),
-				new ViewModel("Revenj Postgres", revenjPostgres, Database.Postgres, ".NET", ORM.Full, "Revenj"),
-				new ViewModel("EF Postgres", efPostgres, Database.Postgres, ".NET", ORM.Full, "Entity Framework"),
-				new ViewModel("Oracle ODP.NET", sqlAdoNet, Database.Oracle, ".NET", ORM.None, "ADO.NET"),
+				new ViewModel("Revenj.NET Postgres", revenjPostgresNet, Database.Postgres, ".NET", ORM.Full, "Revenj"),
+				new ViewModel("Entity Framework Postgres", efPostgres, Database.Postgres, ".NET", ORM.Full, "Entity Framework"),
+				new ViewModel("Oracle ODP.NET", sqlOdpNet, Database.Oracle, ".NET", ORM.None, "ADO.NET"),
+				new ViewModel("Postgres JDBC", jdbcPostgres, Database.Postgres, "Java", ORM.None, "JDBC"),
+				new ViewModel("MsSql JDBC", jdbcMssql, Database.MsSql, "Java", ORM.None, "JDBC"),
+				new ViewModel("Hibernate Postgres", hibernatePostgres, Database.Postgres, "Java", ORM.Full, "Hibernate"),
+				new ViewModel("Revenj.Java Postgres", revenjPostgresJava, Database.Postgres, "Java", ORM.Full, "Revenj"),
 				//new ViewModel("Revenj Oracle", revenjOracle),
 			};
 			var json = JsonConvert.SerializeObject(vm);
@@ -94,6 +105,7 @@ namespace GatherResults
 
 		static Result RunSinglePass(string description, bool exe, string target, string type, int size)
 		{
+			if (TargetOnly != null && TargetOnly != target) return new Result();
 			var processName = exe ? Path.Combine(BenchPath, "DALBenchmark.exe") : Path.Combine(JavaPath ?? ".", "bin", "java");
 			var jarArg = exe ? string.Empty : "-jar \"" + Path.Combine(BenchPath, "dal-benchmark.jar") + "\" ";
 			var info = new ProcessStartInfo(processName, jarArg + target + " " + type + " " + size)
@@ -171,7 +183,6 @@ namespace GatherResults
 		Oracle,
 		MySql
 	}
-
 
 	enum ORM
 	{

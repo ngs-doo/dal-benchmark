@@ -7,14 +7,18 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
+import org.jinq.jpa.JinqJPAStreamProvider;
+import org.jinq.orm.stream.JinqStream;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
-import java.util.stream.Stream;
 
 public abstract class HibernateBench {
 
@@ -22,7 +26,12 @@ public abstract class HibernateBench {
 		switch (type) {
 			case Simple:
 				Bench<Post> simpleBench = new HibernateSimpleStatelessBench("hibernate_postgres.cfg.xml", connectionString);
-				Main.runBenchmark(Post.class, simpleBench, Factories.newSimple(), Factories.updateSimple(), data);
+				Main.runBenchmark(
+						Post.class,
+						simpleBench,
+						Factories.newSimple(),
+						Factories.updateSimple(),
+						data);
 				break;
 			default:
 				throw new UnsupportedOperationException();
@@ -33,6 +42,8 @@ public abstract class HibernateBench {
 		private final LocalDate today;
 		private final StatelessSession session;
 		private final Connection connection;
+		private final EntityManager entityManager;
+		private final JinqJPAStreamProvider streams;
 
 		public HibernateSimpleStatelessBench(String config, String connectionString) throws SQLException {
 			this.today = Factories.TODAY;
@@ -44,6 +55,9 @@ public abstract class HibernateBench {
 			SessionFactory sessionFactory = configuration.buildSessionFactory(ssrb.build());
 			this.connection = DriverManager.getConnection(connectionString);
 			this.session = sessionFactory.openStatelessSession(connection);
+			EntityManagerFactory entityManagerFactory = Persistence.createEntityManagerFactory("JPA");
+			streams = new JinqJPAStreamProvider(entityManagerFactory);
+			entityManager = entityManagerFactory.createEntityManager();
 		}
 
 		@Override
@@ -141,8 +155,17 @@ public abstract class HibernateBench {
 		}
 
 		@Override
-		public Stream<Post> stream() {
-			return null;
+		public List<Post> queryAll() {
+			JinqStream<Post> stream = streams.streamAll(entityManager, Post.class);
+			return stream.toList();
+		}
+
+		@Override
+		public List<Post> querySubset(int i) {
+			JinqStream<Post> stream = streams.streamAll(entityManager, Post.class);
+			LocalDate start = Factories.TODAY.plusDays(i);
+			LocalDate end = Factories.TODAY.plusDays(i + 10);
+			return null;// stream.where(it -> it.getCreated().compareTo(start) >= 0 && it.getCreated().compareTo(end) <= 0).toList();
 		}
 
 		@Override

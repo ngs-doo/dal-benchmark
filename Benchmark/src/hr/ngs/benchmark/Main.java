@@ -24,10 +24,13 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
+
 		//args = new String[]{"Jdbc_Postgres", "Standard_Relational", "1000"};
 		//args = new String[]{"Jdbc_Postgres", "Simple", "10000"};
 		//args = new String[]{"Jdbc_MsSql", "Simple", "10000"};
 		//args = new String[]{"Revenj", "Simple", "10000"};
+		//args = new String[]{"Revenj", "Standard_Relations", "1000"};
+		//args = new String[]{"Revenj", "Complex_Relations", "300"};
 		if (args.length != 3) {
 			System.out.printf(
 					"Expected usage: java -jar json-benchamrk.jar (%s) (%s) n",
@@ -101,6 +104,8 @@ public class Main {
 			ModifyObject<T> fillNew,
 			ModifyObject<T> changeExisting,
 			int data) throws Exception {
+		boolean queryAll = bench.queryAll() != null;
+		boolean querySubset = bench.querySubset(0) != null;
 		for (int i = 0; i < 50; i++) {
 			bench.clean();
 			T newObject = manifest.newInstance();
@@ -122,6 +127,24 @@ public class Main {
 			bench.update(tmp);
 			changeExisting.run(tmp.get(0), i);
 			bench.update(tmp.get(0));
+			if (queryAll) {
+				List<T> allQuery = bench.queryAll();
+				if (allQuery.size() != 1) {
+					throw new InvalidObjectException("Incorrect results during query");
+				}
+				if (!tmp.get(0).equals(allQuery.get(0))) {
+					throw new InvalidObjectException("Incorrect results when comparing aggregates from query");
+				}
+			}
+			if (querySubset) {
+				List<T> filterQuery = bench.querySubset(i);
+				if (filterQuery.size() != 1) {
+					throw new InvalidObjectException("Incorrect results during query filter");
+				}
+				if (!tmp.get(0).equals(filterQuery.get(0))) {
+					throw new InvalidObjectException("Incorrect results when comparing aggregates from query filter");
+				}
+			}
 			T fs = bench.findSingle(newObject.getURI());
 			if (!fs.equals(tmp.get(0))) {
 				throw new InvalidObjectException("Incorrect results when comparing aggregates from find single");
@@ -197,8 +220,30 @@ public class Main {
 			}
 		}
 		System.out.println("search_subset = " + elapsedMilliseconds(dt));
-		System.out.println("query_all = -1");
-		System.out.println("query_filter = -1");
+		if (queryAll) {
+			dt = new Date();
+			for (int i = 0; i < 100; i++) {
+				int cnt = bench.queryAll().size();
+				if (cnt != items.size() / 2) {
+					throw new InvalidObjectException("Expecting results");
+				}
+			}
+			System.out.println("query_all = " + elapsedMilliseconds(dt));
+		} else {
+			System.out.println("query_all = -1");
+		}
+		if (querySubset) {
+			dt = new Date();
+			for (int i = 0; i < 1000; i++) {
+				int cnt = bench.querySubset(i % items.size() / 2).size();
+				if (cnt == 0) {
+					throw new InvalidObjectException("Expecting results");
+				}
+			}
+			System.out.println("query_filter = " + elapsedMilliseconds(dt));
+		} else {
+			System.out.println("query_filter = -1");
+		}
 		dt = new Date();
 		for (int i = 0; i < 2000; i++) {
 			for (int j = 0; j < lookupUris.length; j++) {

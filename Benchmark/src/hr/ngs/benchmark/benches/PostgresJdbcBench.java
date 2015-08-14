@@ -9,7 +9,6 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Stream;
 
 public abstract class PostgresJdbcBench  {
 	public static void runBench(String connectionString, BenchType type, int data) throws Exception {
@@ -218,8 +217,14 @@ public abstract class PostgresJdbcBench  {
 			}
 		}
 
+
 		@Override
-		public Stream<Post> stream() {
+		public List<Post> queryAll() {
+			return null;
+		}
+
+		@Override
+		public List<Post> querySubset(int i) {
 			return null;
 		}
 
@@ -552,8 +557,14 @@ public abstract class PostgresJdbcBench  {
 			update(Collections.singletonList(value));
 		}
 
+
 		@Override
-		public Stream<Invoice> stream() {
+		public List<Invoice> queryAll() {
+			return null;
+		}
+
+		@Override
+		public List<Invoice> querySubset(int i) {
 			return null;
 		}
 
