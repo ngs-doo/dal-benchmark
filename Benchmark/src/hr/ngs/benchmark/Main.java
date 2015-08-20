@@ -1,5 +1,6 @@
 package hr.ngs.benchmark;
 
+import hr.ngs.benchmark.benches.HibernateBench;
 import hr.ngs.benchmark.benches.MsSqlJdbcBench;
 import hr.ngs.benchmark.benches.PostgresJdbcBench;
 import hr.ngs.benchmark.benches.RevenjBench;
@@ -25,9 +26,11 @@ public class Main {
 
 	public static void main(String[] args) {
 
-		//args = new String[]{"Jdbc_Postgres", "Standard_Relational", "1000"};
+		//args = new String[]{"Jdbc_Postgres", "Standard_Relations", "1000"};
 		//args = new String[]{"Jdbc_Postgres", "Simple", "10000"};
 		//args = new String[]{"Jdbc_MsSql", "Simple", "10000"};
+		//args = new String[]{"Hibernate_Postgres", "Simple", "10000"};
+		//args = new String[]{"Hibernate_Postgres", "Standard_Relations", "1000"};
 		//args = new String[]{"Revenj", "Simple", "10000"};
 		//args = new String[]{"Revenj", "Standard_Relations", "1000"};
 		//args = new String[]{"Revenj", "Complex_Relations", "300"};
@@ -78,7 +81,7 @@ public class Main {
 					PostgresJdbcBench.runBench(properties.getProperty("postgres"), type, size);
 					break;
 				case Hibernate_Postgres:
-					PostgresJdbcBench.runBench(properties.getProperty("postgres"), type, size);
+					HibernateBench.runBench(properties.getProperty("postgres"), type, size);
 					break;
 				case Revenj:
 					RevenjBench.runBench(properties.getProperty("postgres"), type, size);
@@ -107,6 +110,12 @@ public class Main {
 		boolean queryAll = bench.queryAll() != null;
 		boolean querySubset = bench.querySubset(0) != null;
 		for (int i = 0; i < 50; i++) {
+			bench.clean();
+			T newObject1 = manifest.newInstance();
+			fillNew.run(newObject1, i);
+			T newObject2 = manifest.newInstance();
+			fillNew.run(newObject2, i + 1);
+			bench.insert(Arrays.asList(newObject1, newObject2));
 			bench.clean();
 			T newObject = manifest.newInstance();
 			fillNew.run(newObject, i);

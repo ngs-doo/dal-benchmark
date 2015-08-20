@@ -4,59 +4,59 @@ import org.revenj.patterns.AggregateRoot;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Invoice implements AggregateRoot {
-	public String number;
-	public LocalDate dueDate;
-	public BigDecimal total;
-	public LocalDateTime paid;
-	public boolean canceled;
-	public long version;
-	public BigDecimal tax;
-	public String reference;
-	public LocalDateTime createdAt;
-	public LocalDateTime modifiedAt;
-	public List<Item> items = new ArrayList<>();
+	private String number;
+	private LocalDate dueDate;
+	private BigDecimal total;
+	private OffsetDateTime paid;
+	private boolean canceled;
+	private long version;
+	private BigDecimal tax;
+	private String reference;
+	private OffsetDateTime createdAt;
+	private OffsetDateTime modifiedAt;
+	private List<InvoiceItem> items = new ArrayList<>();
 	private String URI;
 
 	public Invoice() {
-		number = "";
-		dueDate = LocalDate.now();
-		total = BigDecimal.ZERO;
-		tax = BigDecimal.ZERO;
-		createdAt = LocalDateTime.now();
-		modifiedAt = LocalDateTime.now();
+		setNumber("");
+		setDueDate(LocalDate.now());
+		setTotal(BigDecimal.ZERO);
+		setTax(BigDecimal.ZERO);
+		setCreatedAt(OffsetDateTime.now());
+		setModifiedAt(OffsetDateTime.now());
 	}
 
 	public Invoice(
-			String number, LocalDate dueDate, BigDecimal total, LocalDateTime paid, boolean canceled, long version,
-			BigDecimal tax, String reference, LocalDateTime createdAt, LocalDateTime modifiedAt) {
-		this.number = number;
-		this.dueDate = dueDate;
-		this.total = total;
-		this.paid = paid;
-		this.canceled = canceled;
-		this.version = version;
-		this.tax = tax;
-		this.reference = reference;
-		this.createdAt = createdAt;
-		this.modifiedAt = modifiedAt;
+			String number, LocalDate dueDate, BigDecimal total, OffsetDateTime paid, boolean canceled, long version,
+			BigDecimal tax, String reference, OffsetDateTime createdAt, OffsetDateTime modifiedAt) {
+		this.setNumber(number);
+		this.setDueDate(dueDate);
+		this.setTotal(total);
+		this.setPaid(paid);
+		this.setCanceled(canceled);
+		this.setVersion(version);
+		this.setTax(tax);
+		this.setReference(reference);
+		this.setCreatedAt(createdAt);
+		this.setModifiedAt(modifiedAt);
 	}
 
 	@Override
 	public String getURI() {
 		if (URI == null) {
-			URI = number;
+			URI = getNumber();
 		}
 		return URI;
 	}
 
 	@Override
 	public int hashCode() {
-		return number.hashCode();
+		return getNumber().hashCode();
 	}
 
 	@Override
@@ -65,34 +65,106 @@ public class Invoice implements AggregateRoot {
 			return false;
 		}
 		Invoice value = (Invoice)other;
-		return value.number.equals(this.number)
-				&& value.dueDate.equals(this.dueDate)
-				&& value.total.equals(this.total)
+		return value.getNumber().equals(this.getNumber())
+				&& value.getDueDate().equals(this.getDueDate())
+				&& value.getTotal().equals(this.getTotal())
+				&& value.getItems().size() ==  this.getItems().size()
 				//...
-				&& value.createdAt.equals(this.createdAt)
-				&& value.modifiedAt.equals(this.modifiedAt);
+				&& value.getCreatedAt().equals(this.getCreatedAt())
+				&& value.getModifiedAt().equals(this.getModifiedAt());
 	}
 
-	public static class Item {
-		public String product;
-		public BigDecimal cost;
-		public int quantity;
-		public BigDecimal taxGroup;
-		public BigDecimal discount;
+	public String getNumber() {
+		return number;
+	}
 
-		public Item() {
-			product = "";
-			cost = BigDecimal.ZERO;
-			taxGroup = BigDecimal.ZERO;
-			discount = BigDecimal.ZERO;
-		}
+	public void setNumber(String number) {
+		this.number = number;
+	}
 
-		public Item(String product, BigDecimal cost, int quantity, BigDecimal taxGroup, BigDecimal discount) {
-			this.product = product;
-			this.cost = cost;
-			this.quantity = quantity;
-			this.taxGroup = taxGroup;
-			this.discount = discount;
-		}
+	public LocalDate getDueDate() {
+		return dueDate;
+	}
+
+	public void setDueDate(LocalDate dueDate) {
+		this.dueDate = dueDate;
+	}
+
+	public BigDecimal getTotal() {
+		return total;
+	}
+
+	public void setTotal(BigDecimal total) {
+		this.total = total;
+	}
+
+	public OffsetDateTime getPaid() {
+		return paid;
+	}
+
+	public void setPaid(OffsetDateTime paid) {
+		this.paid = paid;
+	}
+
+	public boolean isCanceled() {
+		return canceled;
+	}
+
+	public void setCanceled(boolean canceled) {
+		this.canceled = canceled;
+	}
+
+	public long getVersion() {
+		return version;
+	}
+
+	public void setVersion(long version) {
+		this.version = version;
+	}
+
+	public BigDecimal getTax() {
+		return tax;
+	}
+
+	public void setTax(BigDecimal tax) {
+		this.tax = tax;
+	}
+
+	public String getReference() {
+		return reference;
+	}
+
+	public void setReference(String reference) {
+		this.reference = reference;
+	}
+
+	public OffsetDateTime getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(OffsetDateTime createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public OffsetDateTime getModifiedAt() {
+		return modifiedAt;
+	}
+
+	public void setModifiedAt(OffsetDateTime modifiedAt) {
+		this.modifiedAt = modifiedAt;
+	}
+
+	public List<InvoiceItem> getItems() {
+		return items;
+	}
+
+	public void setItems(List<InvoiceItem> items) {
+		this.items = items;
+	}
+
+	public void addItem(InvoiceItem item) {
+		item.setInvoice(this);
+		item.setIndex(items.size());
+		getItems().add(item);
 	}
 }

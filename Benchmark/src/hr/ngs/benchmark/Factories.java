@@ -1,21 +1,20 @@
 package hr.ngs.benchmark;
 
 import hr.ngs.benchmark.model.Invoice;
+import hr.ngs.benchmark.model.InvoiceItem;
 import hr.ngs.benchmark.model.Post;
 
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.*;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public abstract class Factories {
 
 	public static final LocalDate TODAY = LocalDate.now();
-	public static final LocalDateTime NOW = LocalDateTime.now();
-	public static final OffsetDateTime NOW_OFFSET = OffsetDateTime.now(ZoneOffset.systemDefault());
+	public static final OffsetDateTime NOW = OffsetDateTime.now(ZoneOffset.systemDefault());
 
 	public static UUID GetUUID(int i) {
 		return new UUID(i, 0);
@@ -45,22 +44,22 @@ public abstract class Factories {
 
 	public static ModifyObject<Invoice> newStandard() {
 		return (inv, i) -> {
-			inv.number = Integer.toString(i);
-			inv.total = BigDecimal.valueOf(100 + i);
-			inv.dueDate = TODAY.plusDays(i / 2);
-			inv.paid = i % 3 == 0 ? TODAY.plusDays(i).atStartOfDay() : null;
-			inv.reference = i % 7 == 0 ? Integer.toString(i) : null;
-			inv.tax = BigDecimal.valueOf(15 + i % 10);
-			inv.version = i;
-			inv.canceled = i % 5 == 0;
+			inv.setNumber(Integer.toString(i));
+			inv.setTotal(BigDecimal.valueOf(100 + i));
+			inv.setDueDate(TODAY.plusDays(i / 2));
+			inv.setPaid(i % 3 == 0 ? TODAY.plusDays(i).atStartOfDay().atOffset(ZoneOffset.UTC) : null);
+			inv.setReference(i % 7 == 0 ? Integer.toString(i) : null);
+			inv.setTax(BigDecimal.valueOf(15 + i % 10));
+			inv.setVersion(i);
+			inv.setCanceled(i % 5 == 0);
 			for (int j = 0; j < i % 10; j++) {
-				Invoice.Item item = new Invoice.Item();
-				item.product = "prod " + i + " - " + j;
-				item.cost = BigDecimal.valueOf((i + j * j) / 100);
-				item.discount = BigDecimal.valueOf(i % 3 == 0 ? i % 10 + 5 : 0);
-				item.quantity = i / 100 + j / 2 + 1;
-				item.taxGroup = BigDecimal.valueOf(5 + i % 20);
-				inv.items.add(item);
+				InvoiceItem item = new InvoiceItem();
+				item.setProduct("prod " + i + " - " + j);
+				item.setCost(BigDecimal.valueOf((i + j * j) / 100));
+				item.setDiscount(BigDecimal.valueOf(i % 3 == 0 ? i % 10 + 5 : 0));
+				item.setQuantity(i / 100 + j / 2 + 1);
+				item.setTaxGroup(BigDecimal.valueOf(5 + i % 20));
+				inv.addItem(item);
 			}
 		};
 	}
@@ -107,20 +106,20 @@ public abstract class Factories {
 
 	public static ModifyObject<Invoice> updateStandard() {
 		return (invoice, i) -> {
-			invoice.paid = NOW.plusNanos(i * 1000);
-			int len = invoice.items.size() / 3;
-			for (Invoice.Item it : invoice.items) {
+			invoice.setPaid(NOW.plusNanos(i * 1000));
+			int len = invoice.getItems().size() / 3;
+			for (InvoiceItem it : invoice.getItems()) {
 				len--;
 				if (len < 0) {
 					return;
 				}
-				it.product += " !";
+				it.setProduct(it.getProduct() + " !");
 			}
 		};
 	}
 
 	public static void updateStandard(hr.ngs.benchmark.StandardObjects.Invoice inv, int i) {
-		inv.setPaid(Factories.NOW_OFFSET.plusNanos(i * 1000));
+		inv.setPaid(Factories.NOW.plusNanos(i * 1000));
 		int len = inv.getItems().size() / 3;
 		for (hr.ngs.benchmark.StandardObjects.Item it : inv.getItems()) {
 			len--;
@@ -132,7 +131,7 @@ public abstract class Factories {
 	}
 
 	public static void updateStandard(hr.ngs.benchmark.StandardRelations.Invoice inv, int i) {
-		inv.setPaid(Factories.NOW_OFFSET.plusNanos(i * 1000));
+		inv.setPaid(Factories.NOW.plusNanos(i * 1000));
 		int len = inv.getItems().size() / 3;
 		for (hr.ngs.benchmark.StandardRelations.Item it : inv.getItems()) {
 			len--;
@@ -158,7 +157,7 @@ public abstract class Factories {
 		fillDict(i, scrape.getInfo());
 		scrape.setExternalId(i % 3 != 0 ? Integer.toString(i) : null);
 		scrape.setRanking(i);
-		scrape.setCreatedAt(Factories.NOW_OFFSET.plusMinutes(i));
+		scrape.setCreatedAt(Factories.NOW.plusMinutes(i));
 		for (int j = 0; j < i % 10; j++) {
 			hr.ngs.benchmark.ComplexObjects.Account acc = new hr.ngs.benchmark.ComplexObjects.Account();
 			acc.setBalance(BigDecimal.valueOf(55.0 + i / (j + 1) - j * j));
@@ -186,7 +185,7 @@ public abstract class Factories {
 		fillDict(i, scrape.getInfo());
 		scrape.setExternalId(i % 3 != 0 ? Integer.toString(i) : null);
 		scrape.setRanking(i);
-		scrape.setCreatedAt(Factories.NOW_OFFSET.plusMinutes(i));
+		scrape.setCreatedAt(Factories.NOW.plusMinutes(i));
 		for (int j = 0; j < i % 10; j++) {
 			hr.ngs.benchmark.ComplexRelations.Account acc = new hr.ngs.benchmark.ComplexRelations.Account();
 			acc.setBalance(BigDecimal.valueOf(55.0 + i / (j + 1) - j * j));
@@ -206,7 +205,7 @@ public abstract class Factories {
 	}
 
 	public static void updateComplex(hr.ngs.benchmark.ComplexObjects.BankScrape scrape, int i) {
-		scrape.setAt(Factories.NOW_OFFSET.plusNanos(i * 1000));
+		scrape.setAt(Factories.NOW.plusNanos(i * 1000));
 		int lenAcc = scrape.getAccounts().size() / 3;
 		for (hr.ngs.benchmark.ComplexObjects.Account acc : scrape.getAccounts()) {
 			lenAcc--;
@@ -224,7 +223,7 @@ public abstract class Factories {
 	}
 
 	public static void updateComplex(hr.ngs.benchmark.ComplexRelations.BankScrape scrape, int i) {
-		scrape.setAt(Factories.NOW_OFFSET.plusNanos(i * 1000));
+		scrape.setAt(Factories.NOW.plusNanos(i * 1000));
 		int lenAcc = scrape.getAccounts().size() / 3;
 		for (hr.ngs.benchmark.ComplexRelations.Account acc : scrape.getAccounts()) {
 			lenAcc--;

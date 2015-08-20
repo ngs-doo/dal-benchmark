@@ -40,7 +40,7 @@ public abstract class RevenjBench {
 								connectionString,
 								i -> new hr.ngs.benchmark.StandardObjects.Invoice.FindBy(i, i + 10),
 								(query, i) -> ((Query<hr.ngs.benchmark.StandardObjects.Invoice>) query)
-										.filter(it -> it.getVersion() >= i && it.getVersion() <= i)
+										.filter(it -> it.getVersion() >= i && it.getVersion() <= (i + 10))
 										.list(),
 								RevenjBench::getStandardObjectsReport);
 				Main.runBenchmark(
@@ -57,7 +57,7 @@ public abstract class RevenjBench {
 								connectionString,
 								i -> new hr.ngs.benchmark.StandardRelations.Invoice.FindBy(i, i + 10),
 								(query, i) -> ((Query<hr.ngs.benchmark.StandardObjects.Invoice>) query)
-										.filter(it -> it.getVersion() >= i && it.getVersion() <= i)
+										.filter(it -> it.getVersion() >= i && it.getVersion() <= (i + 10))
 										.list(),
 								RevenjBench::getStandardRelationalReport);
 				Main.runBenchmark(
@@ -72,10 +72,10 @@ public abstract class RevenjBench {
 						new RevenjGenericBench(
 								hr.ngs.benchmark.ComplexObjects.BankScrape.class,
 								connectionString,
-								i -> new hr.ngs.benchmark.ComplexObjects.BankScrape.FindBy(Factories.NOW_OFFSET.plusMinutes(i), Factories.NOW_OFFSET.plusMinutes(i + 10)),
+								i -> new hr.ngs.benchmark.ComplexObjects.BankScrape.FindBy(Factories.NOW.plusMinutes(i), Factories.NOW.plusMinutes(i + 10)),
 								(query, i) -> {
-									OffsetDateTime start = Factories.NOW_OFFSET.plusMinutes(i);
-									OffsetDateTime end = Factories.NOW_OFFSET.plusMinutes(i + 10);
+									OffsetDateTime start = Factories.NOW.plusMinutes(i);
+									OffsetDateTime end = Factories.NOW.plusMinutes(i + 10);
 									return ((Query<hr.ngs.benchmark.ComplexObjects.BankScrape>) query)
 											.filter(it -> it.getCreatedAt().compareTo(start) >= 0 && it.getCreatedAt().compareTo(end) <= 0)
 											.list();
@@ -93,10 +93,10 @@ public abstract class RevenjBench {
 						new RevenjGenericBench(
 								hr.ngs.benchmark.ComplexRelations.BankScrape.class,
 								connectionString,
-								i -> new hr.ngs.benchmark.ComplexRelations.BankScrape.FindBy(Factories.NOW_OFFSET.plusMinutes(i), Factories.NOW_OFFSET.plusMinutes(i + 10)),
+								i -> new hr.ngs.benchmark.ComplexRelations.BankScrape.FindBy(Factories.NOW.plusMinutes(i), Factories.NOW.plusMinutes(i + 10)),
 								(query, i) -> {
-									OffsetDateTime start = Factories.NOW_OFFSET.plusMinutes(i);
-									OffsetDateTime end = Factories.NOW_OFFSET.plusMinutes(i + 10);
+									OffsetDateTime start = Factories.NOW.plusMinutes(i);
+									OffsetDateTime end = Factories.NOW.plusMinutes(i + 10);
 									return ((Query<hr.ngs.benchmark.ComplexRelations.BankScrape>) query)
 											.filter(it -> it.getCreatedAt().compareTo(start) >= 0 && it.getCreatedAt().compareTo(end) <= 0)
 											.list();
@@ -173,8 +173,8 @@ public abstract class RevenjBench {
 				new hr.ngs.benchmark.ComplexObjects.FindMultiple(
 						i,
 						new int[]{i, i + 2, i + 5, i + 7},
-						Factories.NOW_OFFSET.plusMinutes(i),
-						Factories.NOW_OFFSET.plusMinutes(i + 6));
+						Factories.NOW.plusMinutes(i),
+						Factories.NOW.plusMinutes(i + 6));
 		hr.ngs.benchmark.ComplexObjects.FindMultiple.Result result = find.populate(locator);
 		Report<hr.ngs.benchmark.ComplexObjects.BankScrape> report = new Report<>();
 		report.findOne = result.getFindOne();
@@ -191,8 +191,8 @@ public abstract class RevenjBench {
 				new hr.ngs.benchmark.ComplexRelations.FindMultiple(
 						i,
 						new int[]{i, i + 2, i + 5, i + 7},
-						Factories.NOW_OFFSET.plusMinutes(i),
-						Factories.NOW_OFFSET.plusMinutes(i + 6));
+						Factories.NOW.plusMinutes(i),
+						Factories.NOW.plusMinutes(i + 6));
 		hr.ngs.benchmark.ComplexRelations.FindMultiple.Result result = find.populate(locator);
 		Report<hr.ngs.benchmark.ComplexRelations.BankScrape> report = new Report<>();
 		report.findOne = result.getFindOne();

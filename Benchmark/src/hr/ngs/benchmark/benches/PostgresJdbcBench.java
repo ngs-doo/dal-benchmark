@@ -2,12 +2,14 @@ package hr.ngs.benchmark.benches;
 
 import hr.ngs.benchmark.*;
 import hr.ngs.benchmark.model.Invoice;
+import hr.ngs.benchmark.model.InvoiceItem;
 import hr.ngs.benchmark.model.Post;
 
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 
 public abstract class PostgresJdbcBench  {
@@ -311,20 +313,20 @@ public abstract class PostgresJdbcBench  {
 						rsHead.getString(1),
 						rsHead.getDate(2).toLocalDate(),
 						rsHead.getBigDecimal(3),
-						rsHead.getObject(4) == null ? null : rsHead.getTimestamp(4).toLocalDateTime(),
+						rsHead.getObject(4) == null ? null : rsHead.getTimestamp(4).toLocalDateTime().atOffset(ZoneOffset.UTC),
 						rsHead.getBoolean(5),
 						rsHead.getLong(6),
 						rsHead.getBigDecimal(7),
 						rsHead.getString(8),
-						rsHead.getTimestamp(9).toLocalDateTime(),
-						rsHead.getTimestamp(10).toLocalDateTime());
+						rsHead.getTimestamp(9).toLocalDateTime().atOffset(ZoneOffset.UTC),
+						rsHead.getTimestamp(10).toLocalDateTime().atOffset(ZoneOffset.UTC));
 				if (setPk) {
-					stChild.setString(1, invoice.number);
+					stChild.setString(1, invoice.getNumber());
 				}
 				try (ResultSet rsChild = stChild.executeQuery()) {
 					while (rsChild.next()) {
-						invoice.items.add(
-								new Invoice.Item(
+						invoice.getItems().add(
+								new InvoiceItem(
 										rsChild.getString(1),
 										rsChild.getBigDecimal(2),
 										rsChild.getInt(3),
@@ -350,13 +352,13 @@ public abstract class PostgresJdbcBench  {
 							number,
 							rsHead.getDate(2).toLocalDate(),
 							rsHead.getBigDecimal(3),
-							rsHead.getObject(4) == null ? null : rsHead.getTimestamp(4).toLocalDateTime(),
+							rsHead.getObject(4) == null ? null : rsHead.getTimestamp(4).toLocalDateTime().atOffset(ZoneOffset.UTC),
 							rsHead.getBoolean(5),
 							rsHead.getLong(6),
 							rsHead.getBigDecimal(7),
 							rsHead.getString(8),
-							rsHead.getTimestamp(9).toLocalDateTime(),
-							rsHead.getTimestamp(10).toLocalDateTime());
+							rsHead.getTimestamp(9).toLocalDateTime().atOffset(ZoneOffset.UTC),
+							rsHead.getTimestamp(10).toLocalDateTime().atOffset(ZoneOffset.UTC));
 					map.put(number, invoice);
 					order.put(number, order.size());
 				}
@@ -368,9 +370,9 @@ public abstract class PostgresJdbcBench  {
 				try (ResultSet rsChild = stChild.executeQuery()) {
 					while (rsChild.next()) {
 						String number = rsChild.getString(1);
-						List<Invoice.Item> items = map.get(number).items;
+						List<InvoiceItem> items = map.get(number).getItems();
 						items.add(
-								new Invoice.Item(
+								new InvoiceItem(
 										rsChild.getString(2),
 										rsChild.getBigDecimal(3),
 										rsChild.getInt(4),
@@ -446,26 +448,26 @@ public abstract class PostgresJdbcBench  {
 				try (PreparedStatement head = connection.prepareStatement("INSERT INTO \"StandardRelations\".\"Invoice\"(number, \"dueDate\", total, paid, canceled, version, tax, reference, \"createdAt\", \"modifiedAt\") VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 				     PreparedStatement child = connection.prepareStatement("INSERT INTO \"StandardRelations\".\"Item\"(\"Invoicenumber\", \"Index\", product, cost, quantity, \"taxGroup\", discount) VALUES(?, ?, ?, ?, ?, ?, ?)")) {
 					for (Invoice it : values) {
-						head.setString(1, it.number);
-						head.setDate(2, Date.valueOf(it.dueDate));
-						head.setBigDecimal(3, it.total);
-						head.setTimestamp(4, it.paid != null ? Timestamp.valueOf(it.paid) : null);
-						head.setBoolean(5, it.canceled);
-						head.setLong(6, it.version);
-						head.setBigDecimal(7, it.tax);
-						head.setString(8, it.reference);
-						head.setTimestamp(9, Timestamp.valueOf(it.createdAt));
-						head.setTimestamp(10, Timestamp.valueOf(it.modifiedAt));
+						head.setString(1, it.getNumber());
+						head.setDate(2, Date.valueOf(it.getDueDate()));
+						head.setBigDecimal(3, it.getTotal());
+						head.setTimestamp(4, it.getPaid() != null ? Timestamp.valueOf(it.getPaid().toLocalDateTime()) : null);
+						head.setBoolean(5, it.isCanceled());
+						head.setLong(6, it.getVersion());
+						head.setBigDecimal(7, it.getTax());
+						head.setString(8, it.getReference());
+						head.setTimestamp(9, Timestamp.valueOf(it.getCreatedAt().toLocalDateTime()));
+						head.setTimestamp(10, Timestamp.valueOf(it.getModifiedAt().toLocalDateTime()));
 						head.addBatch();
-						for (int i = 0; i < it.items.size(); i++) {
-							child.setString(1, it.number);
+						for (int i = 0; i < it.getItems().size(); i++) {
+							child.setString(1, it.getNumber());
 							child.setInt(2, i);
-							Invoice.Item det = it.items.get(i);
-							child.setString(3, det.product);
-							child.setBigDecimal(4, det.cost);
-							child.setInt(5, det.quantity);
-							child.setBigDecimal(6, det.taxGroup);
-							child.setBigDecimal(7, det.discount);
+							InvoiceItem det = it.getItems().get(i);
+							child.setString(3, det.getProduct());
+							child.setBigDecimal(4, det.getCost());
+							child.setInt(5, det.getQuantity());
+							child.setBigDecimal(6, det.getTaxGroup());
+							child.setBigDecimal(7, det.getDiscount());
 							child.addBatch();
 						}
 					}
@@ -494,43 +496,43 @@ public abstract class PostgresJdbcBench  {
 						rs.next();
 						int max = rs.getInt(1);
 						rs.close();
-						head.setString(1, inv.number);
-						head.setDate(2, Date.valueOf(inv.dueDate));
-						head.setBigDecimal(3, inv.total);
-						head.setTimestamp(4, inv.paid != null ? Timestamp.valueOf(inv.paid) : null);
-						head.setBoolean(5, inv.canceled);
-						head.setLong(6, inv.version);
-						head.setBigDecimal(7, inv.tax);
-						head.setString(8, inv.reference);
-						inv.modifiedAt = LocalDateTime.now();
-						head.setTimestamp(9, Timestamp.valueOf(inv.modifiedAt));
+						head.setString(1, inv.getNumber());
+						head.setDate(2, Date.valueOf(inv.getDueDate()));
+						head.setBigDecimal(3, inv.getTotal());
+						head.setTimestamp(4, inv.getPaid() != null ? Timestamp.valueOf(inv.getPaid().toLocalDateTime()) : null);
+						head.setBoolean(5, inv.isCanceled());
+						head.setLong(6, inv.getVersion());
+						head.setBigDecimal(7, inv.getTax());
+						head.setString(8, inv.getReference());
+						inv.setModifiedAt(OffsetDateTime.now());
+						head.setTimestamp(9, Timestamp.valueOf(inv.getModifiedAt().toLocalDateTime()));
 						head.setString(10, inv.getURI());
 						head.addBatch();
-						int min = Math.min(max, inv.items.size());
+						int min = Math.min(max, inv.getItems().size());
 						for (int i = 0; i <= min; i++) {
-							Invoice.Item det = inv.items.get(i);
-							childUpdate.setString(1, det.product);
-							childUpdate.setBigDecimal(2, det.cost);
-							childUpdate.setInt(3, det.quantity);
-							childUpdate.setBigDecimal(4, det.taxGroup);
-							childUpdate.setBigDecimal(5, det.discount);
-							childUpdate.setString(6, inv.number);
+							InvoiceItem det = inv.getItems().get(i);
+							childUpdate.setString(1, det.getProduct());
+							childUpdate.setBigDecimal(2, det.getCost());
+							childUpdate.setInt(3, det.getQuantity());
+							childUpdate.setBigDecimal(4, det.getTaxGroup());
+							childUpdate.setBigDecimal(5, det.getDiscount());
+							childUpdate.setString(6, inv.getNumber());
 							childUpdate.setInt(7, i);
 							childUpdate.addBatch();
 						}
-						for (int i = min + 1; i < inv.items.size(); i++) {
-							Invoice.Item det = inv.items.get(i);
-							childInsert.setString(1, inv.number);
+						for (int i = min + 1; i < inv.getItems().size(); i++) {
+							InvoiceItem det = inv.getItems().get(i);
+							childInsert.setString(1, inv.getNumber());
 							childInsert.setInt(2, i);
-							childInsert.setString(3, det.product);
-							childInsert.setBigDecimal(4, det.cost);
-							childInsert.setInt(5, det.quantity);
-							childInsert.setBigDecimal(6, det.taxGroup);
-							childInsert.setBigDecimal(7, det.discount);
+							childInsert.setString(3, det.getProduct());
+							childInsert.setBigDecimal(4, det.getCost());
+							childInsert.setInt(5, det.getQuantity());
+							childInsert.setBigDecimal(6, det.getTaxGroup());
+							childInsert.setBigDecimal(7, det.getDiscount());
 							childInsert.addBatch();
 						}
-						if (max > inv.items.size()) {
-							childDelete.setString(1, inv.number);
+						if (max > inv.getItems().size()) {
+							childDelete.setString(1, inv.getNumber());
 							childDelete.setInt(2, max);
 							childDelete.addBatch();
 						}

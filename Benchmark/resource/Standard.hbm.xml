@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC 
+ "-//Hibernate/Hibernate Mapping DTD//EN"
+ "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd"> 
+
+<hibernate-mapping default-lazy="false">
+    <class name="hr.ngs.benchmark.model.Invoice" table='"Invoice"' schema='"StandardRelations"'>
+        <id name="number" type="string" column="number" />
+        <property name="dueDate" column='"dueDate"' type="org.hibernate.type.LocalDateType"/>
+        <property name="total" column="total" type="big_decimal"/>
+        <property name="paid" column='"paid"' type="org.hibernate.type.OffsetDateTimeType"/>
+        <property name="canceled" column="canceled" type="boolean"/>
+        <property name="version" column="version" type="long"/>
+        <property name="tax" column="tax" type="big_decimal"/>
+        <property name="reference" column="reference" type="string"/>
+        <property name="createdAt" column='"createdAt"' type="org.hibernate.type.OffsetDateTimeType"/>
+        <property name="modifiedAt" column='"modifiedAt"' type="org.hibernate.type.OffsetDateTimeType"/>
+        <bag name="items" inverse="true" lazy="false" cascade="all">
+            <key column='"Invoicenumber"'/>
+            <one-to-many class="hr.ngs.benchmark.model.InvoiceItem"/>
+        </bag>
+    </class>
+    <class name="hr.ngs.benchmark.model.InvoiceItem" table='"Item"' schema='"StandardRelations"'>
+        <composite-id>
+            <key-property name="invoiceNumber" column='"Invoicenumber"' />
+            <key-property name="index" column='"Index"' />
+        </composite-id>
+        <many-to-one name="invoice" column='"Invoicenumber"' not-null="true" insert="false" update="false"/>
+        <property name="index" column='"Index"' type="int" insert="false" update="false"/>
+        <property name="product" column="product" type="string"/>
+        <property name="cost" column="cost" type="big_decimal"/>
+        <property name="quantity" column="quantity" type="int"/>
+        <property name="taxGroup" column='"taxGroup"' type="big_decimal"/>
+        <property name="discount" column="discount" type="big_decimal"/>
+    </class>
+</hibernate-mapping>
