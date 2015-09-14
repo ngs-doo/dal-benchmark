@@ -2,7 +2,9 @@
 
 This is reference benchmark for Revenj framework data layer.
 
-Variety of models are tested, from small simple objects, to very complex large objects.
+Varieties of models are tested, from small simple objects, to very complex large objects.
+
+Don't consider this a database benchmark, since there is no network roundtrip and only single client thread is used to talk with the database.
 
 ###Models
 
@@ -26,17 +28,21 @@ Variety of models are tested, from small simple objects, to very complex large o
 
 ###Libraries
 
- * Npgsql (2.2.4.3) - used to implement manual SQL approach; talks to Postgres using binary protocol
- * Revenj (1.2.0) - implemented both as a "standard" relational approach with aggregation in a single object and as a "NoSQL" object oriented approach; Uses customized old Npgsql which talks to Postgres using text protocol
+ * Npgsql (2.2.4.3) - used to implement manual SQL approach; talks to Postgres using binary protocol (never version exists, but it's mostly slower and require some code changes... will be added later)
+ * Revenj (1.2.1) - implemented both as a "standard" relational approach with aggregation in a single object and as a "NoSQL" object oriented approach; Uses customized old Npgsql which talks to Postgres using text protocol
  * Entity Framework 6 - most popular .NET ORM.
- * JDBC PostgreSQL (9.4-1201) - official JDBC driver for PostgreSQL
+ * Hibernate 5 - most popular Java ORM.
+ * JDBC PostgreSQL (9.4-1202) - official JDBC driver for PostgreSQL
  * MsSql ADO.NET - not included in results, but you can run the bench to see how it stands
+ * Oracle ODP.NET - not included in results, but you can run the bench to see how it stands
 
 ###Single table test
 
 Small table which should reflect simple database interaction. Npgsql does not implement "true" batch inserts/updates, but rather reuses the same command.
 
 ![Single table](results/simple.png)
+
+Interestingly Postgres can return few columns using binary protocol up to 3x faster than a record using text protocol.
 
 ###Parent/child test
 
@@ -71,8 +77,7 @@ Bench was run on Windows7 with Postgres 9.3 locally installed.
 
 ###Conclusions:
 
- * Manual coding of SQL and object materialization is not the fastest way to talk to the database
+ * Manual coding of SQL and object materialization is often not the fastest way to talk to the database
  * Complex models will benefit from "NoSQL" approach to modeling
- * Revenj/DSL-Platform has better performance then using SQL with data readers
- * DSL-Platform compiler will create a lot of boilerplate in the database, but it will also put that boilerplate to use
- * JVM drivers could use some performance improvements
+ * DSL Platform compiler will create a lot of boilerplate in the database, but it will also put that boilerplate to use
+ * Postgres JDBC driver performance has improved significantly with version 1202

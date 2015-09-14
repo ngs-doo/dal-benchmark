@@ -26,7 +26,7 @@ namespace Benchmark
 			}
 		}
 
-		static void Clean(IServiceLocator locator, IDataContext context, string clean)
+		static void Clean(IServiceProvider locator, IDataContext context, string clean)
 		{
 			context.Delete<Simple.Post>(context.Query<Simple.Post>());
 			context.Delete<StandardObjects.Invoice>(context.Query<StandardObjects.Invoice>());
@@ -47,7 +47,7 @@ namespace Benchmark
 			Execute(locator, type, data, null);
 		}
 
-		static void Execute(IServiceLocator locator, BenchType type, int data, string clean)
+		static void Execute(IServiceProvider locator, BenchType type, int data, string clean)
 		{
 			switch (type)
 			{
@@ -117,17 +117,17 @@ namespace Benchmark
 		class RunBench<T> : IBench<T>
 			where T : IAggregateRoot
 		{
-			private readonly IServiceLocator Locator;
+			private readonly IServiceProvider Locator;
 			private readonly IDataContext Context;
 			private readonly IPersistableRepository<T> Repository;
 			private readonly Func<int, ISpecification<T>> SearchFilter;
-			private readonly Func<int, IServiceLocator, Report<T>> CreateReport;
+			private readonly Func<int, IServiceProvider, Report<T>> CreateReport;
 			private readonly string CleanDb;
 
 			public RunBench(
-				IServiceLocator locator,
+				IServiceProvider locator,
 				Func<int, ISpecification<T>> searchFilter,
-				Func<int, IServiceLocator, Report<T>> createReport,
+				Func<int, IServiceProvider, Report<T>> createReport,
 				string clean)
 			{
 				this.Locator = locator;
@@ -200,7 +200,7 @@ namespace Benchmark
 			}
 		}
 
-		static Report<Simple.Post> GetSimpleReport(int i, IServiceLocator locator)
+		static Report<Simple.Post> GetSimpleReport(int i, IServiceProvider locator)
 		{
 			Func<int, Guid> gg = Factories.GetGuid;
 			var report = new Simple.FindMultiple
@@ -222,7 +222,7 @@ namespace Benchmark
 			};
 		}
 
-		public static Report<StandardObjects.Invoice> GetSOReport(int i, IServiceLocator locator)
+		public static Report<StandardObjects.Invoice> GetSOReport(int i, IServiceProvider locator)
 		{
 			var report = new StandardObjects.FindMultiple
 			{
@@ -243,7 +243,7 @@ namespace Benchmark
 			};
 		}
 
-		public static Report<StandardRelations.Invoice> GetSRReport(int i, IServiceLocator locator)
+		public static Report<StandardRelations.Invoice> GetSRReport(int i, IServiceProvider locator)
 		{
 			var report = new StandardRelations.FindMultiple
 			{
@@ -264,7 +264,7 @@ namespace Benchmark
 			};
 		}
 
-		public static Report<ComplexObjects.BankScrape> GetCOReport(int i, IServiceLocator locator)
+		public static Report<ComplexObjects.BankScrape> GetCOReport(int i, IServiceProvider locator)
 		{
 			var report = new ComplexObjects.FindMultiple
 			{
@@ -285,7 +285,7 @@ namespace Benchmark
 			};
 		}
 
-		public static Report<ComplexRelations.BankScrape> GetCRReport(int i, IServiceLocator locator)
+		public static Report<ComplexRelations.BankScrape> GetCRReport(int i, IServiceProvider locator)
 		{
 			var report = new ComplexRelations.FindMultiple
 			{

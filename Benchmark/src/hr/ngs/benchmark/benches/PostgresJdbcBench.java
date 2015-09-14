@@ -504,7 +504,7 @@ public abstract class PostgresJdbcBench  {
 						head.setLong(6, inv.getVersion());
 						head.setBigDecimal(7, inv.getTax());
 						head.setString(8, inv.getReference());
-						inv.setModifiedAt(OffsetDateTime.now());
+						inv.setModifiedAt(OffsetDateTime.now(ZoneOffset.UTC));
 						head.setTimestamp(9, Timestamp.valueOf(inv.getModifiedAt().toLocalDateTime()));
 						head.setString(10, inv.getURI());
 						head.addBatch();

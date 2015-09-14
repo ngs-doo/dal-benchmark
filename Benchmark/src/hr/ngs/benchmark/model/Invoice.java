@@ -1,5 +1,6 @@
 package hr.ngs.benchmark.model;
 
+import hr.ngs.benchmark.Factories;
 import org.revenj.patterns.AggregateRoot;
 
 import java.math.BigDecimal;
@@ -26,9 +27,9 @@ public class Invoice implements AggregateRoot {
 		setNumber("");
 		setDueDate(LocalDate.now());
 		setTotal(BigDecimal.ZERO);
-		setTax(BigDecimal.ZERO);
-		setCreatedAt(OffsetDateTime.now());
-		setModifiedAt(OffsetDateTime.now());
+		setTax(BigDecimal.ZERO.setScale(2));
+		setCreatedAt(Factories.NOW);
+		setModifiedAt(Factories.NOW);
 	}
 
 	public Invoice(

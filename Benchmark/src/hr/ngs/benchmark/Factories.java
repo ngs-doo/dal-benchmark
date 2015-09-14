@@ -14,7 +14,7 @@ import java.util.stream.IntStream;
 public abstract class Factories {
 
 	public static final LocalDate TODAY = LocalDate.now();
-	public static final OffsetDateTime NOW = OffsetDateTime.now(ZoneOffset.systemDefault());
+	public static final OffsetDateTime NOW = OffsetDateTime.now(ZoneOffset.UTC);
 
 	public static UUID GetUUID(int i) {
 		return new UUID(i, 0);
@@ -49,7 +49,7 @@ public abstract class Factories {
 			inv.setDueDate(TODAY.plusDays(i / 2));
 			inv.setPaid(i % 3 == 0 ? TODAY.plusDays(i).atStartOfDay().atOffset(ZoneOffset.UTC) : null);
 			inv.setReference(i % 7 == 0 ? Integer.toString(i) : null);
-			inv.setTax(BigDecimal.valueOf(15 + i % 10));
+			inv.setTax(BigDecimal.valueOf(15 + i % 10).setScale(2));
 			inv.setVersion(i);
 			inv.setCanceled(i % 5 == 0);
 			for (int j = 0; j < i % 10; j++) {

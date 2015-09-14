@@ -10,7 +10,7 @@ namespace DALBenchmark
 			var dbScript = typeof(Initialize).Assembly.GetManifestResourceStream("DALBenchmark.Database.Postgres.sql");
 			using (var conn = new Revenj.DatabasePersistence.Postgres.Npgsql.NpgsqlConnection(cs))
 			{
-				var com = Revenj.DatabasePersistence.Postgres.PostgresDatabaseQuery.NewCommand(dbScript);
+				var com = Revenj.DatabasePersistence.Postgres.PostgresCommandFactory.NewCommand(dbScript);
 				com.Connection = conn;
 				conn.Open();
 				com.ExecuteNonQuery();
